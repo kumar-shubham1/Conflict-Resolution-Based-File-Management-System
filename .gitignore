@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+package-lock.json.bak
+
+# Environment & Secrets
+.env
+.env.local
+*.env
+
+# Uploads & Runtime storage
+backend/uploads/
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS & Editor artifacts
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload Test</title>
+</head>
+<body>
+
+    <h2>Upload a File</h2>
+
+    <form id="uploadForm">
+        <input type="file" id="fileInput" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <pre id="result"></pre>
+
+    <script>
+        const form = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('fileInput');
+        const result = document.getElementById('result');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('http://localhost:3000/api/files/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                result.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = error.message;
+            }
+        });
+    </script>
+
+</body>
+</html>

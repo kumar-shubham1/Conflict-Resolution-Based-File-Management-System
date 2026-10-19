@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ConflictCore — File workspace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f7fb;--panel:#fff;--ink:#20283a;--muted:#7c8498;--line:#e9ebf2;--purple:#7164d9;--purple2:#f0eeff;--green:#23876a;--greenbg:#e5f6ef;--amber:#b7791f;--amberbg:#fff4dc;--red:#c45161;--redbg:#ffeaed;--blue:#4678c8;--bluebg:#eaf1ff;--shadow:0 8px 26px rgba(33,42,74,.045)}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:'DM Sans',sans-serif;font-size:14px}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #bdb6ff;outline-offset:2px}.app{min-height:100vh;display:grid;grid-template-columns:248px 1fr}.sidebar{background:#fff;border-right:1px solid var(--line);padding:24px 16px;display:flex;flex-direction:column;gap:28px}.brand{display:flex;align-items:center;gap:11px;padding:0 9px}.brandmark{height:39px;width:39px;border-radius:13px;background:#7164d9;color:white;display:grid;place-items:center;box-shadow:0 7px 15px #7164d933}.brand strong{font:800 17px Manrope,sans-serif;letter-spacing:-.6px}.brand small{display:block;color:var(--muted);font-size:11px;margin-top:2px}.navlabel{font-size:10px;letter-spacing:1.5px;color:#a0a6b6;font-weight:700;padding:0 12px;margin-bottom:8px}.nav{display:grid;gap:5px}.nav button{border:0;background:transparent;color:#70798d;display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:10px;text-align:left;font-weight:600;width:100%;transition:.15s}.nav button:hover{background:#f8f7ff;color:var(--purple)}.nav button.active{background:var(--purple2);color:var(--purple)}.nav svg{width:18px;height:18px;flex-shrink:0}.nav .count{margin-left:auto;background:#ffe7ea;color:#c45161;border-radius:7px;font-size:11px;padding:3px 7px}.sidebar-bottom{margin-top:auto}.helpbox{background:#f8f7ff;border:1px solid #eeebff;border-radius:14px;padding:14px;margin:0 3px 17px}.helpbox strong{font-size:12px}.helpbox p{font-size:11px;line-height:1.6;color:var(--muted);margin:7px 0 12px}.helpbox button{border:0;background:white;border:1px solid var(--line);padding:8px 10px;border-radius:8px;color:#6256c7;font-size:11px;font-weight:700}.profile{border-top:1px solid var(--line);padding:17px 6px 0;display:flex;align-items:center;gap:10px}.avatar{height:35px;width:35px;border-radius:12px;background:#e6e1ff;color:#6256c7;font-weight:800;display:grid;place-items:center}.profile b{font-size:12px}.profile small{display:block;color:var(--muted);font-size:10px;margin-top:3px}.main{min-width:0}.topbar{height:77px;background:#ffffffd9;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 35px;position:sticky;top:0;z-index:5;backdrop-filter:blur(12px)}.crumb{color:var(--muted);font-size:12px}.crumb b{color:var(--ink)}.topright{display:flex;align-items:center;gap:12px}.search{position:relative}.search input{width:230px;background:#f7f8fb;border:1px solid var(--line);border-radius:10px;padding:10px 12px 10px 35px;font-size:12px}.search svg{position:absolute;left:12px;top:10px;color:#9aa1b2}.iconbtn{height:36px;width:36px;border:1px solid var(--line);background:white;border-radius:10px;color:#727b8e;display:grid;place-items:center;position:relative}.iconbtn .dot{height:6px;width:6px;background:#e66c7c;border:1px solid white;border-radius:50%;position:absolute;right:7px;top:7px}.content{max-width:1500px;margin:auto;padding:30px 35px 45px}.pagehead{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:24px}.eyebrow{font-size:10px;letter-spacing:1.7px;text-transform:uppercase;color:var(--purple);font-weight:800;margin-bottom:8px}.pagehead h1{font:800 26px Manrope,sans-serif;letter-spacing:-1px;margin:0 0 7px}.pagehead p{margin:0;color:var(--muted);font-size:13px}.actions{display:flex;gap:9px;flex-wrap:wrap}.btn{border:1px solid var(--line);background:white;border-radius:9px;padding:10px 13px;display:inline-flex;align-items:center;gap:8px;color:#535d72;font-size:12px;font-weight:700;box-shadow:0 2px 4px #22222203}.btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}.btn.primary{background:var(--purple);border-color:var(--purple);color:white;box-shadow:0 5px 12px #7164d92c}.btn.soft{background:var(--purple2);border-color:var(--purple2);color:var(--purple)}.btn.danger{color:var(--red);background:var(--redbg);border-color:var(--redbg)}.btn svg{width:15px;height:15px}.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px;margin-bottom:19px}.stat,.card{background:var(--panel);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}.stat{padding:18px 18px 16px;position:relative;overflow:hidden}.stat-top{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:12px;font-weight:600}.stat-icon{height:35px;width:35px;border-radius:11px;display:grid;place-items:center}.stat-icon svg{height:18px;width:18px}.stat-value{font:800 27px Manrope,sans-serif;letter-spacing:-1px;margin:13px 0 6px}.stat-foot{font-size:11px;color:var(--muted)}.up{color:var(--green);font-weight:700}.layout2{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(270px,1fr);gap:17px;margin-bottom:17px}.card{padding:19px;min-width:0}.cardhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:17px}.cardhead h2{font:800 14px Manrope,sans-serif;margin:0;letter-spacing:-.2px}.subtext{font-size:11px;color:var(--muted);margin-top:5px}.textbtn{border:0;background:none;color:var(--purple);font-weight:700;font-size:11px;padding:4px}.pill{font-size:10px;padding:5px 8px;border-radius:7px;font-weight:800;white-space:nowrap;display:inline-flex;align-items:center;gap:5px}.pill.green{background:var(--greenbg);color:var(--green)}.pill.amber{background:var(--amberbg);color:var(--amber)}.pill.red{background:var(--redbg);color:var(--red)}.pill.blue{background:var(--bluebg);color:var(--blue)}.pill.gray{background:#f0f2f6;color:#747d91}.pill.purple{background:var(--purple2);color:var(--purple)}.tablewrap{overflow-x:auto}table{border-collapse:collapse;width:100%;white-space:nowrap}th{text-align:left;color:#9aa1b0;font-size:10px;letter-spacing:.5px;font-weight:800;padding:11px 10px;border-bottom:1px solid var(--line)}td{padding:13px 10px;border-bottom:1px solid #f0f1f6;font-size:11px;color:#596276}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#fbfbfe}.filecell{display:flex;align-items:center;gap:10px;color:#30394c;font-weight:700}.fileicon{width:32px;height:35px;border-radius:8px;background:#f1efff;color:#7869d9;display:grid;place-items:center;flex-shrink:0}.fileicon svg{width:17px;height:17px}.fileicon.green{background:#e5f6ef;color:#26866b}.fileicon.orange{background:#fff0df;color:#bf7d2c}.fileicon.blue{background:#eaf1ff;color:#527fc7}.filemeta{display:flex;flex-direction:column;gap:4px}.filemeta small{font-size:10px;color:#9aa1b0;font-weight:500}.mini{border:0;background:transparent;color:#8991a3;font-size:17px;padding:3px 6px;border-radius:7px}.mini:hover{background:#f0efff;color:var(--purple)}.activity{display:grid;gap:0}.event{display:grid;grid-template-columns:31px 1fr auto;gap:10px;padding:12px 0;border-bottom:1px solid #f0f1f6;align-items:start}.event:last-child{border:0}.eventicon{height:30px;width:30px;border-radius:10px;display:grid;place-items:center}.eventicon svg{height:15px;width:15px}.event strong{font-size:11px}.event p{font-size:10px;color:var(--muted);margin:4px 0 0;line-height:1.5}.event time{font-size:10px;color:#9ba2b1;white-space:nowrap}.barrow{display:grid;grid-template-columns:62px 1fr 35px;gap:10px;align-items:center;margin:17px 0}.barrow label{font-size:11px;color:#6f788c;font-weight:600}.bartrack{height:8px;background:#f0f1f6;border-radius:99px;overflow:hidden}.barfill{height:100%;border-radius:99px;background:var(--purple)}.barrow b{font-size:11px;text-align:right}.health{display:flex;align-items:center;gap:12px;padding:12px;background:#f7fbf9;border:1px solid #e4f3eb;border-radius:12px;margin-top:14px}.healthdot{height:9px;width:9px;border-radius:50%;background:#32a57c;box-shadow:0 0 0 4px #d8f4e7}.health strong{font-size:11px}.health p{margin:4px 0 0;color:var(--muted);font-size:10px}.view{display:none}.view.active{display:block}.toolbar{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:15px}.filters{display:flex;gap:8px;flex-wrap:wrap}.select,.field{border:1px solid var(--line);background:white;border-radius:9px;padding:10px 12px;color:#596276;font-size:12px}.empty{padding:40px;text-align:center;color:var(--muted)}.empty svg{width:35px;height:35px;color:#b6b0ef}.schedtop{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}.algo{display:flex;background:#f4f5fa;border-radius:10px;padding:4px;gap:3px}.algo button{border:0;background:transparent;color:#7c8498;padding:8px 11px;border-radius:7px;font-size:11px;font-weight:700}.algo button.active{background:white;color:var(--purple);box-shadow:0 2px 7px #2222220c}.gantt{display:flex;gap:5px;overflow-x:auto;padding:18px 0 12px}.gblock{min-width:65px;flex:1;padding:12px 9px;border-radius:9px;background:#efedff;border:1px solid #e1ddff;color:#6256c7;text-align:center;font-size:11px;font-weight:800}.gblock:nth-child(2n){background:#e8f5f0;border-color:#d4eee3;color:#278366}.gblock:nth-child(3n){background:#fff1dd;border-color:#ffe5bd;color:#ae7523}.gblock small{display:block;font-weight:500;margin-top:7px;opacity:.8}.timeline{display:flex;justify-content:space-between;color:#9ba2b1;font-size:10px;padding-bottom:7px;border-bottom:1px solid var(--line)}.metricgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}.metric{background:#f8f8fc;border:1px solid #f0f0f7;padding:13px;border-radius:10px}.metric small{display:block;color:var(--muted);font-size:10px}.metric b{display:block;font:800 19px Manrope;margin-top:6px}.graph{padding:12px;overflow:auto}.graph svg{width:100%;min-width:350px;height:230px}.lockrow{display:grid;grid-template-columns:1.4fr 1fr 1fr auto;gap:12px;align-items:center;padding:14px 4px;border-bottom:1px solid #f0f1f6;font-size:11px}.lockrow:last-child{border:0}.lockname{font-weight:700;display:flex;gap:9px;align-items:center}.lockname .fileicon{height:29px;width:29px}.lockname small{display:block;color:var(--muted);font-weight:500;margin-top:4px}.alertbox{border:1px solid #f8d8dd;background:#fff8f9;border-radius:12px;padding:15px;display:flex;gap:12px;margin-bottom:16px}.alertbox svg{color:var(--red);flex-shrink:0}.alertbox strong{font-size:12px}.alertbox p{font-size:11px;color:#8e6a70;line-height:1.6;margin:5px 0 0}.logrow{display:grid;grid-template-columns:85px 100px 1fr 95px;gap:12px;padding:13px 8px;border-bottom:1px solid #f0f1f6;font-size:11px;align-items:center}.logrow:last-child{border:0}.modalback{position:fixed;inset:0;background:#20283a66;display:none;align-items:center;justify-content:center;padding:20px;z-index:20}.modalback.open{display:flex}.modal{background:white;width:min(440px,100%);border-radius:17px;padding:23px;box-shadow:0 25px 80px #1d244433}.modal h3{font:800 18px Manrope;margin:0 0 7px}.modal p{color:var(--muted);font-size:12px;line-height:1.6;margin:0 0 19px}.modal label{display:block;font-size:11px;font-weight:700;margin:13px 0 7px;color:#687186}.modal input,.modal select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px}.modalfoot{display:flex;justify-content:flex-end;gap:8px;margin-top:22px}.toast{position:fixed;bottom:24px;right:24px;background:#20283a;color:white;padding:13px 17px;border-radius:11px;box-shadow:0 8px 30px #2223;font-size:12px;z-index:30;opacity:0;transform:translateY(12px);pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translateY(0)}.mobilemenu{display:none}
+@media(max-width:1100px){.app{grid-template-columns:210px 1fr}.content{padding:25px 22px}.topbar{padding:0 22px}.stats{grid-template-columns:repeat(2,1fr)}.layout2{grid-template-columns:1fr}.search input{width:180px}}
+@media(max-width:720px){.app{display:block}.sidebar{position:fixed;z-index:12;top:0;bottom:0;left:-260px;width:245px;transition:left .2s;box-shadow:var(--shadow)}.sidebar.open{left:0}.mobilemenu{display:grid}.topbar{height:65px;padding:0 15px}.topright{gap:7px}.search input{width:min(42vw,190px)}.content{padding:22px 14px}.pagehead{flex-direction:column}.pagehead h1{font-size:23px}.stats{gap:9px}.stat{padding:13px}.stat-value{font-size:24px}.stat-top{font-size:11px}.stat-icon{height:30px;width:30px}.card{padding:14px}.metricgrid{grid-template-columns:1fr 1fr}.metricgrid .metric:last-child{grid-column:span 2}.lockrow{grid-template-columns:1.2fr 1fr auto}.lockrow .holder{display:none}.logrow{grid-template-columns:65px 78px 1fr}.logrow .logstatus{display:none}.topright .topname{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+ <div class="brand"><div class="brandmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="22"><path d="M4 7.5 12 3l8 4.5v9L12 21l-8-4.5z"/><path d="m4.5 7.8 7.5 4.4 7.5-4.4M12 12.2V21"/></svg></div><div><strong>ConflictCore</strong><small>File workspace</small></div></div>
+ <div><div class="navlabel">WORKSPACE</div><nav class="nav" id="nav">
+ <button class="active" data-view="dashboard"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="11" width="7" height="10" rx="2"/><rect x="3" y="14" width="8" height="7" rx="2"/></svg>Overview</button>
+ <button data-view="files"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>File explorer</button>
+ <button data-view="processes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h3v3H7zM14 9h3M14 12h3M7 16h10"/></svg>Process monitor</button>
+ <button data-view="scheduler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h17M7 15h3V9H7zM13 15h3V5h-3zM19 15h1V11h-1z"/></svg>Scheduler</button>
+ <button data-view="locks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3M12 14v3"/></svg>Lock manager <span class="count">2</span></button>
+ <button data-view="deadlocks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="m8.5 7.5 2 7m5-7-2 7m-4.5 3h2"/></svg>Deadlock centre <span class="count">1</span></button>
+ <button data-view="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4zM8 8h8M8 12h8M8 16h5"/></svg>Activity log</button>
+ </nav></div>
+ <div class="sidebar-bottom"><div class="helpbox"><strong>Everything in sync</strong><p>This workspace is running with local demonstration data. Connect the team backend when integration is decided.</p><button id="aboutBtn">About this project ↗</button></div><div class="profile"><div class="avatar">JS</div><div><b>Jahnvi Sharma</b><small>Frontend & visualisation</small></div></div></div>
+</aside>
+<main class="main"><header class="topbar"><div style="display:flex;align-items:center;gap:12px"><button class="iconbtn mobilemenu" id="menuBtn" aria-label="Open menu"><svg viewBox="0 0 24 24" width="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="crumb">Workspace <span style="padding:0 7px;color:#c5c8d2">/</span><b id="crumb">Overview</b></div></div><div class="topright"><div class="search"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m16 16 4 4"/></svg><input id="globalSearch" placeholder="Search files, processes..." aria-label="Search"></div><button class="iconbtn" id="notifBtn" title="Notifications"><svg viewBox="0 0 24 24" width="17" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><i class="dot"></i></button><div class="avatar topname">JS</div></div></header>
+<div class="content">
+<section class="view active" id="view-dashboard"><div class="pagehead"><div><div class="eyebrow">SATURDAY, OCTOBER 10 · WORKSPACE</div><h1>Good morning, Jahnvi <span style="font-size:23px">✦</span></h1><p>Here's what's happening across your file workspace today.</p></div><div class="actions"><button class="btn" data-action="new-folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM12 10v6m-3-3h6"/></svg>New folder</button><button class="btn primary" data-action="upload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4m-4 4 4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>Upload files</button></div></div>
+<div class="stats"><div class="stat"><div class="stat-top">Total files <span class="stat-icon" style="background:#f0eeff;color:#7164d9"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h8l5 5v13H6zM14 3v5h5M9 13h7M9 17h7"/></svg></span></div><div class="stat-value" id="statFiles">128</div><div class="stat-foot"><span class="up">↗ 12%</span> from last week</div></div><div class="stat"><div class="stat-top">Active processes <span class="stat-icon" style="background:#eaf1ff;color:#4678c8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h3v3H7zM14 9h3M14 12h3M7 16h10"/></svg></span></div><div class="stat-value" id="statProcesses">06</div><div class="stat-foot"><span class="up">4 running</span> · 2 waiting</div></div><div class="stat"><div class="stat-top">Active locks <span class="stat-icon" style="background:#e5f6ef;color:#23876a"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg></span></div><div class="stat-value" id="statLocks">03</div><div class="stat-foot">Across 3 files</div></div><div class="stat"><div class="stat-top">Deadlock alerts <span class="stat-icon" style="background:#ffeaed;color:#c45161"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 10 18H2zM12 9v5m0 3h.01"/></svg></span></div><div class="stat-value" id="statDeadlocks">01</div><div class="stat-foot"><span style="color:var(--red);font-weight:700">Needs attention</span></div></div></div>
+<div class="layout2"><div class="card"><div class="cardhead"><div><h2>Recent file activity</h2><div class="subtext">Latest operations across your workspace</div></div><button class="textbtn" data-go="activity">View activity →</button></div><div class="tablewrap"><table><thead><tr><th>FILE NAME</th><th>OPERATION</th><th>UPDATED</th><th>STATUS</th><th></th></tr></thead><tbody id="recentFiles"></tbody></table></div></div><div class="card"><div class="cardhead"><div><h2>Process overview</h2><div class="subtext">Current process distribution</div></div><button class="textbtn" data-go="processes">Details →</button></div><div id="processBars"></div><div class="health"><span class="healthdot"></span><div><strong>Workspace operating normally</strong><p>Local demo environment · backend not connected</p></div></div></div></div>
+<div class="layout2"><div class="card"><div class="cardhead"><div><h2>Recent activity</h2><div class="subtext">A quick look at recent system events</div></div><button class="textbtn" data-go="activity">Full log →</button></div><div class="activity" id="recentActivity"></div></div><div class="card"><div class="cardhead"><div><h2>Quick access</h2><div class="subtext">Jump into a workspace tool</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="btn" data-go="scheduler" style="justify-content:flex-start;padding:14px 11px"><span class="stat-icon" style="background:#f0eeff;color:#7164d9;width:30px;height:30px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5M4 19h17M7 15h3V9H7zM13 15h3V5h-3z"/></svg></span>Scheduler</button><button class="btn" data-go="locks" style="justify-content:flex-start;padding:14px 11px"><span class="stat-icon" style="background:#e5f6ef;color:#23876a;width:30px;height:30px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3"/></svg></span>File locks</button><button class="btn" data-go="deadlocks" style="justify-content:flex-start;padding:14px 11px"><span class="stat-icon" style="background:#ffeaed;color:#c45161;width:30px;height:30px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="12" cy="18" r="3"/><path d="m8.5 7.5 2 7m5-7-2 7"/></svg></span>Deadlocks</button><button class="btn" data-go="files" style="justify-content:flex-start;padding:14px 11px"><span class="stat-icon" style="background:#eaf1ff;color:#4678c8;width:30px;height:30px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span>File explorer</button></div><div style="margin-top:18px;padding:14px;background:#faf9ff;border:1px solid #eeebff;border-radius:11px"><div style="font-weight:700;font-size:11px">Designed for safe collaboration</div><p style="font-size:10px;color:var(--muted);line-height:1.6;margin:6px 0 0">Processes, locks and conflicts are visualised here to make concurrent file access easier to understand.</p></div></div></div>
+</section>
+<section class="view" id="view-files"><div class="pagehead"><div><div class="eyebrow">YOUR WORKSPACE</div><h1>File explorer</h1><p>Browse, organise and manage your files in one place.</p></div><div class="actions"><button class="btn" data-action="new-folder">＋ New folder</button><button class="btn primary" data-action="upload">↑ Upload files</button></div></div><div class="toolbar"><div class="filters"><select class="select" id="folderFilter"><option value="all">All folders</option><option>Documents</option><option>Design</option><option>Research</option><option>Shared</option></select><select class="select" id="typeFilter"><option value="all">All file types</option><option value="PDF">PDF</option><option value="DOCX">DOCX</option><option value="XLSX">XLSX</option><option value="PNG">PNG</option></select></div><div style="color:var(--muted);font-size:11px" id="fileCount">128 items</div></div><div class="card"><div class="tablewrap"><table><thead><tr><th>NAME</th><th>LOCATION</th><th>SIZE</th><th>LAST MODIFIED</th><th>STATUS</th><th>ACTIONS</th></tr></thead><tbody id="allFiles"></tbody></table></div></div><input type="file" id="fileInput" multiple hidden></section>
+<section class="view" id="view-processes"><div class="pagehead"><div><div class="eyebrow">OPERATING SYSTEMS</div><h1>Process monitor</h1><p>Track operation lifecycles and inspect process scheduling states.</p></div><div class="actions"><button class="btn" data-action="refresh">↻ Refresh</button><button class="btn" data-action="dispatch-next">⚡ Dispatch next</button><button class="btn primary" data-action="new-process">＋ Simulate process</button></div></div><div class="stats"><div class="stat"><div class="stat-top">Ready queue</div><div class="stat-value">02</div><div class="stat-foot">Waiting for CPU</div></div><div class="stat"><div class="stat-top">Running</div><div class="stat-value">02</div><div class="stat-foot"><span class="up">On simulated CPU</span></div></div><div class="stat"><div class="stat-top">Waiting on locks</div><div class="stat-value">02</div><div class="stat-foot">Resource contention</div></div><div class="stat"><div class="stat-top">Completed today</div><div class="stat-value" id="completedCount">24</div><div class="stat-foot">Demo lifecycle events</div></div></div><div class="card"><div class="cardhead"><div><h2>Process queue</h2><div class="subtext">Process state and scheduling information</div></div><select class="select" id="processFilter"><option value="all">All states</option><option>READY</option><option>RUNNING</option><option>WAITING</option><option>COMPLETED</option><option>ABORTED</option></select></div><div class="tablewrap"><table><thead><tr><th>PROCESS</th><th>OPERATION</th><th>FILE</th><th>BURST</th><th>PRIORITY</th><th>STATE</th><th>METRICS</th></tr></thead><tbody id="processTable"></tbody></table></div></div></section>
+<section class="view" id="view-scheduler"><div class="pagehead"><div><div class="eyebrow">OPERATING SYSTEMS · CPU SCHEDULING</div><h1>Scheduler visualisation</h1><p>Compare scheduling policies and understand their performance metrics.</p></div><div class="actions"><button class="btn" data-action="reset-schedule">↻ Reset</button></div></div><div class="card" style="margin-bottom:17px"><div class="schedtop"><div><h2 style="font:800 14px Manrope;margin:0">Scheduling algorithm</h2><div class="subtext">Select an algorithm to recalculate the execution order</div></div><div class="algo" id="algoButtons"><button class="active" data-algo="FCFS">FCFS</button><button data-algo="SJF">SJF</button><button data-algo="PRIORITY">Priority</button></div></div><div class="gantt" id="gantt"></div><div class="timeline" id="timeline"></div><div class="metricgrid" id="scheduleMetrics"></div><div class="subtext">Assumptions: non-preemptive scheduling, single simulated CPU, lower priority number means higher priority. Demonstration dataset; not connected to the OS kernel.</div></div><div class="card"><div class="cardhead"><div><h2>Process calculation table</h2><div class="subtext">Arrival, burst, completion and turnaround values for the selected policy</div></div></div><div class="tablewrap"><table><thead><tr><th>PROCESS</th><th>ARRIVAL</th><th>BURST</th><th>PRIORITY</th><th>COMPLETION</th><th>TURNAROUND</th><th>WAITING</th><th>RESPONSE</th></tr></thead><tbody id="scheduleTable"></tbody></table></div></div></section>
+<section class="view" id="view-locks"><div class="pagehead"><div><div class="eyebrow">CONCURRENCY CONTROL</div><h1>Lock manager</h1><p>Understand file ownership, lock contention and waiting queues.</p></div><div class="actions"><button class="btn" data-action="refresh">↻ Refresh</button></div></div><div class="layout2"><div class="card"><div class="cardhead"><div><h2>File lock registry</h2><div class="subtext">Current holders and waiting processes</div></div><span class="pill green">3 active</span></div><div id="lockList"></div></div><div class="card"><div class="cardhead"><div><h2>Locking rules</h2></div></div><div class="event"><div class="eventicon" style="background:#e5f6ef;color:#23876a">🔒</div><div><strong>Exclusive access</strong><p>Only one process can hold a file's exclusive lock at a time.</p></div></div><div class="event"><div class="eventicon" style="background:#eaf1ff;color:#4678c8">↕</div><div><strong>FIFO waiting queue</strong><p>Waiting processes are considered in the order they requested access.</p></div></div><div class="event"><div class="eventicon" style="background:#fff4dc;color:#b7791f">↻</div><div><strong>Release and resume</strong><p>When a lock is released, the next eligible waiter can resume.</p></div></div><div class="health"><span class="healthdot"></span><div><strong>Lock visualisation available</strong><p>Sample data only until the OS module is integrated.</p></div></div></div></div></section>
+<section class="view" id="view-deadlocks"><div class="pagehead"><div><div class="eyebrow">CONCURRENCY SAFETY</div><h1>Deadlock centre</h1><p>Inspect circular waits and review a simulated recovery decision.</p></div><div class="actions"><button class="btn primary" data-action="detect-deadlock">↻ Run detection demo</button></div></div><div class="alertbox"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 10 18H2zM12 9v5m0 3h.01"/></svg><div><strong id="deadlockHeadline">Circular wait detected in demonstration scenario</strong><p id="deadlockDescription">P1 holds File A and waits for File B, while P2 holds File B and waits for File A. This example illustrates a wait-for graph cycle; no real process or database transaction is being changed.</p></div></div><div class="layout2"><div class="card"><div class="cardhead"><div><h2>Wait-for graph</h2><div class="subtext">An edge A → B means process A is waiting for process B</div></div><span class="pill red" id="cyclePill">Cycle detected</span></div><div class="graph"><svg viewBox="0 0 440 235" role="img" aria-label="Wait-for graph showing P1 and P2 waiting on each other"><defs><marker id="arrowRed" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#d05a6b"/></marker></defs><path d="M145 75 C220 10 285 10 315 75" stroke="#d05a6b" stroke-width="2.5" fill="none" marker-end="url(#arrowRed)"/><path d="M315 115 C285 185 220 185 145 115" stroke="#d05a6b" stroke-width="2.5" fill="none" marker-end="url(#arrowRed)"/><rect x="48" y="68" width="100" height="55" rx="12" fill="#fff0f2" stroke="#f0c4cb"/><text x="98" y="91" text-anchor="middle" font-size="12" font-weight="700" fill="#b84455">P1</text><text x="98" y="107" text-anchor="middle" font-size="9" fill="#9d6870">holds A</text><rect x="292" y="68" width="100" height="55" rx="12" fill="#fff0f2" stroke="#f0c4cb"/><text x="342" y="91" text-anchor="middle" font-size="12" font-weight="700" fill="#b84455">P2</text><text x="342" y="107" text-anchor="middle" font-size="9" fill="#9d6870">holds B</text><text x="230" y="48" text-anchor="middle" font-size="10" fill="#b84455">waits for B</text><text x="220" y="171" text-anchor="middle" font-size="10" fill="#b84455">waits for A</text><text x="220" y="218" text-anchor="middle" font-size="10" fill="#969daf">Illustrative wait-for cycle · P1 ↔ P2</text></svg></div></div><div class="card"><div class="cardhead"><div><h2>Recovery summary</h2><div class="subtext">Example victim selection</div></div></div><div style="padding:13px;background:#fff7f8;border:1px solid #f8dfe3;border-radius:11px"><div class="eyebrow" style="color:var(--red);margin-bottom:5px">SELECTED VICTIM</div><div style="font:800 22px Manrope" id="victimName">P2</div><div style="font-size:11px;color:var(--muted);margin-top:4px">Lowest importance / latest arrival, per demo rules</div></div><div style="margin-top:16px" id="recoverySteps"><div class="event"><div class="eventicon" style="background:#ffeaed;color:#c45161">1</div><div><strong>Cycle identified</strong><p>Wait-for graph contains a circular dependency.</p></div></div><div class="event"><div class="eventicon" style="background:#fff4dc;color:#b7791f">2</div><div><strong>Victim selected</strong><p>Choose the process with the lowest scheduling importance.</p></div></div><div class="event"><div class="eventicon" style="background:#e5f6ef;color:#23876a">3</div><div><strong>Release and resume</strong><p>Abort the victim, release its locks and wake eligible waiters.</p></div></div></div><button class="btn primary" style="width:100%;justify-content:center;margin-top:8px" data-action="recover-demo">Simulate recovery</button><div class="subtext" style="margin-top:9px">Demo only — this does not abort real processes or roll back a database transaction.</div></div></div><div class="card"><div class="cardhead"><div><h2>Recovery history</h2><div class="subtext">Illustrative events</div></div></div><div class="tablewrap"><table><thead><tr><th>TIME</th><th>CYCLE</th><th>VICTIM</th><th>RELEASED LOCKS</th><th>RESULT</th></tr></thead><tbody id="recoveryHistory"><tr><td>09:41:12</td><td>P1 ↔ P2</td><td>P2</td><td>File B</td><td><span class="pill green">Resolved (demo)</span></td></tr></tbody></table></div></div></section>
+<section class="view" id="view-activity"><div class="pagehead"><div><div class="eyebrow">AUDIT TRAIL</div><h1>Activity log</h1><p>Review the sequence and outcome of workspace events.</p></div><div class="actions"><button class="btn" data-action="export-log">↓ Export CSV</button></div></div><div class="toolbar"><div class="filters"><select class="select" id="logFilter"><option value="all">All event types</option><option>FILE</option><option>PROCESS</option><option>LOCK</option><option>DEADLOCK</option></select></div><span class="subtext">Local demonstration event log</span></div><div class="card"><div class="logrow" style="font-size:10px;color:#9aa1b0;font-weight:800"><span>TIME</span><span>EVENT</span><span>DESCRIPTION</span><span class="logstatus">STATUS</span></div><div id="fullLog"></div></div></section>
+</div></main></div>
+<div class="modalback" id="modalBack"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><h3 id="modalTitle">Create folder</h3><p id="modalDesc">Add a new folder to this local demonstration workspace.</p><div id="modalFields"></div><div class="modalfoot"><button class="btn" id="cancelModal">Cancel</button><button class="btn primary" id="confirmModal">Create folder</button></div></div></div><div class="toast" id="toast" role="status"></div>
+<script>
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const API_BASE = window.CONFLICTCORE_API_BASE || 'http://localhost:3000/api';
+const icons = { pdf: 'file-text', docx: 'file-text', xlsx: 'file-spreadsheet', png: 'image', folder: 'folder' };
+
+let files = [];
+let folders = new Set(['Documents', 'Design', 'Research', 'Shared']);
+let folderMap = new Map();
+let processes = [];
+let locks = [];
+let deadlocks = { activeCycle: null, waitForEdges: [], history: [] };
+let logs = [];
+let algo = 'FCFS';
+let averages = {};
+let isBackendConnected = false;
+let modalMode = 'folder';
+
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+function toast(s) {
+  let t = $('#toast');
+  if (!t) return;
+  t.textContent = s;
+  t.classList.add('show');
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+function pill(s) {
+  s = String(s || 'UNKNOWN').toUpperCase();
+  let c = ({
+    ACTIVE: 'green', COMPLETED: 'green', ACQUIRED: 'green', TERMINATED: 'green', RESOLVED: 'green',
+    RUNNING: 'blue', FILE: 'blue',
+    READY: 'purple', PROCESS: 'purple',
+    WAITING: 'amber', LOCKED: 'amber', CONTENDED: 'amber', LOCK: 'amber',
+    PENDING: 'gray', TRASHED: 'gray', RELEASED: 'gray',
+    ABORTED: 'red', FAILED: 'red', KILLED: 'red', DEADLOCK: 'red'
+  })[s] || 'gray';
+  return `<span class="pill ${c}">${esc(s)}</span>`;
+}
+
+function fileIcon(type) {
+  type = String(type || '').toUpperCase();
+  let c = type === 'PDF' ? '' : 'blue';
+  if (type === 'XLSX' || type === 'CSV') c = 'green';
+  if (type === 'PNG' || type === 'JPG' || type === 'JPEG') c = 'orange';
+  return `<span class="fileicon ${c}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h8l5 5v13H6zM14 3v5h5M9 13h7M9 17h5"/></svg></span>`;
+}
+
+function formatSize(bytes) {
+  const b = Number(bytes);
+  if (isNaN(b) || b <= 0) return '0 B';
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function formatDate(val, timeOnly) {
+  if (!val) return 'Just now';
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return String(val);
+    if (timeOnly) return d.toLocaleTimeString('en-GB');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return String(val);
+  }
+}
+
+async function apiRequest(endpoint, options = {}) {
+  const isFormData = options.body instanceof FormData;
+  const headers = { ...(options.headers || {}) };
+  if (!isFormData && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+  const res = await fetch(`${API_BASE}${endpoint}`, { ...options, headers });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const err = new Error(data.message || data.error || `HTTP ${res.status}`);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+  return data;
+}
+
+// ---- Data Loaders ----
+
+async function loadFolders() {
+  try {
+    const data = await apiRequest('/folders');
+    const folderList = Array.isArray(data.folders) ? data.folders : [];
+    folderMap.clear();
+    folderList.forEach(f => {
+      folderMap.set(f.folder_id, f.folder_name);
+      folders.add(f.folder_name);
+    });
+    updateFolderFilterUI();
+    return true;
+  } catch (err) {
+    console.warn('Could not load folders:', err.message);
+    return false;
+  }
+}
+
+function updateFolderFilterUI() {
+  const select = $('#folderFilter');
+  if (!select) return;
+  const currentVal = select.value;
+  select.innerHTML = '<option value="all">All folders</option>' +
+    [...folders].map(f => `<option value="${esc(f)}">${esc(f)}</option>`).join('');
+  if (folders.has(currentVal)) select.value = currentVal;
+}
+
+async function loadFiles() {
+  try {
+    const data = await apiRequest('/files');
+    const rawFiles = Array.isArray(data.files) ? data.files : [];
+    files = rawFiles.map(f => {
+      const ext = (f.file_name?.split('.').pop() || 'FILE').toUpperCase();
+      return {
+        id: f.file_id,
+        name: f.file_name,
+        type: ext,
+        folder: folderMap.get(f.folder_id) || (f.folder_id ? `Folder #${f.folder_id}` : 'Documents'),
+        folderId: f.folder_id,
+        size: formatSize(f.file_size_bytes),
+        sizeBytes: f.file_size_bytes,
+        updated: formatDate(f.updated_at || f.created_at),
+        status: f.status || 'ACTIVE',
+        op: 'UPLOAD',
+        raw: f
+      };
+    });
+    return true;
+  } catch (err) {
+    console.warn('Could not load files:', err.message);
+    return false;
+  }
+}
+
+async function loadProcesses() {
+  try {
+    const data = await apiRequest('/processes');
+    if (data.algorithm) algo = data.algorithm;
+    averages = data.averages || {};
+    const rawProcesses = Array.isArray(data.processes) ? data.processes : [];
+    processes = rawProcesses.map(p => ({
+      id: 'P' + p.id,
+      rawId: p.id,
+      name: p.name,
+      op: p.operation || 'FILE',
+      file: p.fileId ? (files.find(f => f.id === p.fileId)?.name || `File #${p.fileId}`) : (p.name || '—'),
+      fileId: p.fileId,
+      arrival: p.arrivalTime ?? 0,
+      burst: p.burstTime ?? 1,
+      priority: p.priority ?? 1,
+      state: p.state || 'READY',
+      start: p.firstStartTime,
+      completion: p.completionTime,
+      turnaround: p.turnaroundTime,
+      waiting: p.waitingTime,
+      response: p.responseTime,
+      raw: p
+    }));
+    return true;
+  } catch (err) {
+    console.warn('Could not load processes:', err.message);
+    return false;
+  }
+}
+
+async function loadLocks() {
+  try {
+    const data = await apiRequest('/locks');
+    const rawLocks = Array.isArray(data.locks) ? data.locks : [];
+    locks = rawLocks.map(l => {
+      const f = files.find(x => x.id === l.fileId);
+      return {
+        file: f ? f.name : `File #${l.fileId}`,
+        fileId: l.fileId,
+        holder: l.holderId != null ? `P${l.holderId}` : '—',
+        queue: Array.isArray(l.waitingQueue) ? l.waitingQueue.map(pid => `P${pid}`) : [],
+        mode: 'EXCLUSIVE',
+        status: (l.waitingQueue && l.waitingQueue.length > 0) ? 'CONTENDED' : (l.holderId != null ? 'ACQUIRED' : 'RELEASED')
+      };
+    });
+    return true;
+  } catch (err) {
+    console.warn('Could not load locks:', err.message);
+    return false;
+  }
+}
+
+async function loadDeadlocks() {
+  try {
+    const data = await apiRequest('/deadlocks');
+    deadlocks = {
+      activeCycle: Array.isArray(data.activeCycle) && data.activeCycle.length ? data.activeCycle : null,
+      waitForEdges: Array.isArray(data.waitForEdges) ? data.waitForEdges : [],
+      history: Array.isArray(data.history) ? data.history : []
+    };
+    return true;
+  } catch (err) {
+    console.warn('Could not load deadlocks:', err.message);
+    return false;
+  }
+}
+
+async function loadOperations() {
+  try {
+    const data = await apiRequest('/operations');
+    const rawOps = Array.isArray(data.operations) ? data.operations : [];
+    logs = rawOps.map(op => {
+      let desc = '';
+      if (op.details) {
+        try {
+          const det = typeof op.details === 'string' ? JSON.parse(op.details) : op.details;
+          desc = det.originalName || det.fileName || det.stagedFilePath || JSON.stringify(det);
+        } catch {
+          desc = String(op.details);
+        }
+      }
+      if (!desc) {
+        const f = op.file_id ? files.find(x => x.id === op.file_id) : null;
+        desc = f ? f.name : (op.file_id ? `File #${op.file_id}` : `Op #${op.operation_id}`);
+      }
+      return {
+        time: formatDate(op.created_at, true),
+        type: op.operation_type || 'FILE',
+        desc: `${op.operation_type} · ${desc}`,
+        status: op.status || 'PENDING',
+        raw: op
+      };
+    });
+    return true;
+  } catch (err) {
+    console.warn('Could not load operations:', err.message);
+    return false;
+  }
+}
+
+async function loadAll() {
+  const results = await Promise.all([
+    loadFolders(),
+    loadFiles(),
+    loadProcesses(),
+    loadLocks(),
+    loadDeadlocks(),
+    loadOperations()
+  ]);
+
+  const [foldersOk, filesOk, processesOk, locksOk, deadlocksOk, opsOk] = results;
+  const allOk = foldersOk && filesOk && processesOk && locksOk && deadlocksOk && opsOk;
+  const anyOk = foldersOk || filesOk || processesOk || locksOk || deadlocksOk || opsOk;
+
+  if (allOk) {
+    isBackendConnected = true;
+    updateHealthIndicator('connected');
+  } else if (anyOk) {
+    isBackendConnected = false;
+    updateHealthIndicator('degraded');
+  } else {
+    isBackendConnected = false;
+    updateHealthIndicator('disconnected');
+  }
+
+  renderAll();
+}
+
+function updateHealthIndicator(state) {
+  $$('.health').forEach(h => {
+    const p = h.querySelector('p');
+    const dot = h.querySelector('.healthdot');
+    const strong = h.querySelector('strong');
+    if (state === 'connected' || state === true) {
+      if (strong) strong.textContent = 'Backend connected & synchronized';
+      if (p) p.textContent = `Connected to API at ${API_BASE} · Live MySQL & OS Kernel active`;
+      if (dot) dot.style.background = '#32a57c';
+    } else if (state === 'degraded') {
+      if (strong) strong.textContent = 'Backend partially connected';
+      if (p) p.textContent = `Connected to ${API_BASE}, but some subsystem endpoints are degraded.`;
+      if (dot) dot.style.background = '#e8b35a';
+    } else {
+      if (strong) strong.textContent = 'Offline / Connecting...';
+      if (p) p.textContent = `Cannot reach ${API_BASE}. Ensure backend is running (port 3000).`;
+      if (dot) dot.style.background = '#c45161';
+    }
+  });
+}
+
+// ---- Renderers ----
+
+function renderRecent() {
+  let arr = files.slice(0, 5);
+  $('#recentFiles').innerHTML = arr.length
+    ? arr.map(f => `<tr><td><div class="filecell">${fileIcon(f.type)}<span class="filemeta">${esc(f.name)}<small>${esc(f.size)}</small></span></div></td><td>${esc(f.op)}</td><td>${esc(f.updated)}</td><td>${pill(f.status)}</td><td><button class="mini" data-filemenu="${f.id}" title="File actions">···</button></td></tr>`).join('')
+    : '<tr><td colspan="5"><div class="empty">No recent files found.</div></td></tr>';
+}
+
+function renderFiles() {
+  let q = ($('#globalSearch').value || '').toLowerCase();
+  let folder = $('#folderFilter')?.value || 'all';
+  let type = $('#typeFilter')?.value || 'all';
+  let arr = files.filter(f =>
+    (f.name.toLowerCase().includes(q) || f.folder.toLowerCase().includes(q)) &&
+    (folder === 'all' || f.folder === folder) &&
+    (type === 'all' || f.type === type)
+  );
+  $('#fileCount').textContent = `${arr.length} items`;
+  $('#allFiles').innerHTML = arr.length
+    ? arr.map(f => `<tr><td><div class="filecell">${fileIcon(f.type)}<span class="filemeta">${esc(f.name)}<small>${esc(f.type)} file</small></span></div></td><td>${esc(f.folder)}</td><td>${esc(f.size)}</td><td>${esc(f.updated)}</td><td>${pill(f.status)}</td><td><button class="mini" data-filemenu="${f.id}" title="File actions">···</button></td></tr>`).join('')
+    : `<tr><td colspan="6"><div class="empty">No files match your search.</div></td></tr>`;
+}
+
+function renderBars() {
+  let counts = {
+    RUNNING: processes.filter(p => p.state === 'RUNNING').length,
+    READY: processes.filter(p => p.state === 'READY').length,
+    WAITING: processes.filter(p => p.state === 'WAITING').length,
+    COMPLETED: processes.filter(p => p.state === 'COMPLETED' || p.state === 'TERMINATED').length
+  };
+  let max = Math.max(1, ...Object.values(counts));
+  $('#processBars').innerHTML = Object.entries(counts).map(([k, v]) =>
+    `<div class="barrow"><label>${k[0] + k.slice(1).toLowerCase()}</label><div class="bartrack"><div class="barfill" style="width:${(v / max) * 100}%;background:${k === 'WAITING' ? '#e8b35a' : k === 'COMPLETED' ? '#54b994' : k === 'READY' ? '#9a8ff0' : '#6e9ae1'}"></div></div><b>${v}</b></div>`
+  ).join('');
+}
+
+function renderActivity() {
+  let arr = logs.slice(0, 4);
+  $('#recentActivity').innerHTML = arr.length
+    ? arr.map(e => `<div class="event"><div class="eventicon" style="background:${e.type === 'DEADLOCK' ? '#ffeaed' : e.type === 'LOCK' ? '#fff4dc' : e.type === 'PROCESS' ? '#f0eeff' : '#eaf1ff'};color:${e.type === 'DEADLOCK' ? '#c45161' : e.type === 'LOCK' ? '#b7791f' : e.type === 'PROCESS' ? '#7164d9' : '#4678c8'}">${e.type === 'FILE' ? '↗' : e.type === 'LOCK' ? '⌑' : e.type === 'PROCESS' ? '▤' : '!'}</div><div><strong>${esc(e.type)} event</strong><p>${esc(e.desc)}</p></div><time>${esc(e.time)}</time></div>`).join('')
+    : '<div class="empty">No recent activity.</div>';
+}
+
+function renderProcesses() {
+  let filter = $('#processFilter')?.value || 'all';
+  let q = ($('#globalSearch').value || '').toLowerCase();
+  let arr = processes.filter(p =>
+    (filter === 'all' || p.state === filter) &&
+    (p.id.toLowerCase().includes(q) || p.file.toLowerCase().includes(q) || p.op.toLowerCase().includes(q))
+  );
+  $('#processTable').innerHTML = arr.length
+    ? arr.map(p => `<tr><td><b style="color:#30394c">${esc(p.id)}</b></td><td>${esc(p.op)}</td><td>${esc(p.file)}</td><td>${p.burst} units</td><td>${p.priority}</td><td>${pill(p.state)}</td><td>${p.state === 'COMPLETED' || p.state === 'TERMINATED' ? `W ${p.waiting ?? 0} · T ${p.turnaround ?? p.burst}` : '—'}</td></tr>`).join('')
+    : '<tr><td colspan="7"><div class="empty">No processes match.</div></td></tr>';
+
+  const readyCount = processes.filter(p => p.state === 'READY').length;
+  const runningCount = processes.filter(p => p.state === 'RUNNING').length;
+  const waitingCount = processes.filter(p => p.state === 'WAITING').length;
+  const completedCount = processes.filter(p => p.state === 'COMPLETED' || p.state === 'TERMINATED').length;
+  const activeCount = readyCount + runningCount + waitingCount;
+
+  $('#statProcesses').textContent = String(activeCount).padStart(2, '0');
+  const compEl = $('#completedCount');
+  if (compEl) compEl.textContent = String(completedCount);
+}
+
+function calculateSchedule() {
+  let arr = processes.map(p => ({ ...p })).filter(p => !['ABORTED', 'FAILED', 'KILLED'].includes(p.state));
+  if (!arr.length) return [];
+  let ready = arr.slice().sort((a, b) => a.arrival - b.arrival || a.id.localeCompare(b.id)), now = 0, done = [];
+  while (ready.length) {
+    let available = ready.filter(p => p.arrival <= now);
+    if (!available.length) {
+      now = ready[0].arrival;
+      available = ready.filter(p => p.arrival <= now);
+    }
+    let p;
+    if (algo === 'SJF') p = available.sort((a, b) => a.burst - b.burst || a.arrival - b.arrival || a.id.localeCompare(b.id))[0];
+    else if (algo === 'PRIORITY') p = available.sort((a, b) => a.priority - b.priority || a.arrival - b.arrival || a.id.localeCompare(b.id))[0];
+    else p = available.sort((a, b) => a.arrival - b.arrival || a.id.localeCompare(b.id))[0];
+    ready = ready.filter(x => x.id !== p.id);
+    let start = now;
+    now += p.burst;
+    p.start = start;
+    p.completion = now;
+    p.turnaround = now - p.arrival;
+    p.waiting = p.turnaround - p.burst;
+    p.response = start - p.arrival;
+    done.push(p);
+  }
+  return done;
+}
+
+function renderSchedule() {
+  let d = calculateSchedule();
+  $('#gantt').innerHTML = d.length
+    ? d.map(p => `<div class="gblock" style="flex:${Math.max(1, p.burst)}">${esc(p.id)}<small>${p.start} – ${p.completion}</small></div>`).join('')
+    : '<div class="empty" style="width:100%">No processes available for scheduling.</div>';
+  $('#timeline').innerHTML = `<span>0 units</span><span>${Math.round(d.reduce((a, p) => a + p.burst, 0) / 2)} units</span><span>${d.length ? d[d.length - 1].completion : 0} units</span>`;
+  let avg = k => d.length ? d.reduce((s, p) => s + (p[k] || 0), 0) / d.length : 0;
+  $('#scheduleMetrics').innerHTML = [
+    ['Avg. waiting time', averages.avgWaitingTime != null ? averages.avgWaitingTime : avg('waiting')],
+    ['Avg. turnaround', averages.avgTurnaroundTime != null ? averages.avgTurnaroundTime : avg('turnaround')],
+    ['Avg. response time', averages.avgResponseTime != null ? averages.avgResponseTime : avg('response')]
+  ].map(([l, v]) => `<div class="metric"><small>${l}</small><b>${Number(v).toFixed(2)} <span style="font-size:10px;font-weight:500;color:var(--muted)">units</span></b></div>`).join('');
+  $('#scheduleTable').innerHTML = d.length
+    ? d.map(p => `<tr><td><b style="color:#30394c">${esc(p.id)}</b></td><td>${p.arrival}</td><td>${p.burst}</td><td>${p.priority}</td><td>${p.completion}</td><td>${p.turnaround}</td><td>${p.waiting}</td><td>${p.response}</td></tr>`).join('')
+    : '<tr><td colspan="8"><div class="empty">No processes to calculate.</div></td></tr>';
+  $$('[data-algo]').forEach(b => b.classList.toggle('active', b.dataset.algo === algo));
+}
+
+function renderLocks() {
+  $('#lockList').innerHTML = locks.length
+    ? locks.map(l => `<div class="lockrow"><div class="lockname">${fileIcon(l.file.endsWith('xlsx') || l.file.endsWith('csv') ? 'XLSX' : 'DOCX')}<span>${esc(l.file)}<small>${esc(l.mode)} lock</small></span></div><div><small style="display:block;color:var(--muted);margin-bottom:5px">HOLDER</small><b>${esc(l.holder)}</b></div><div class="holder"><small style="display:block;color:var(--muted);margin-bottom:5px">WAITING</small><b>${l.queue.length ? esc(l.queue.join(', ')) : '—'}</b></div>${pill(l.status)}</div>`).join('')
+    : '<div class="empty">No active locks in kernel registry.</div>';
+  $('#statLocks').textContent = String(locks.filter(l => l.holder !== '—').length).padStart(2, '0');
+}
+
+function renderDeadlocks() {
+  const hasCycle = deadlocks.activeCycle && deadlocks.activeCycle.length > 0;
+  const cyclePill = $('#cyclePill');
+  const headline = $('#deadlockHeadline');
+  const desc = $('#deadlockDescription');
+  const victimEl = $('#victimName');
+
+  if (hasCycle) {
+    const cycleNames = deadlocks.activeCycle.map(p => `P${p}`).join(' ↔ ');
+    if (headline) headline.textContent = `Circular wait detected in OS wait-for graph (${cycleNames})`;
+    if (desc) desc.textContent = `Deadlock cycle identified across processes: ${deadlocks.activeCycle.map(p => `P${p}`).join(' → ')}. Recovery victim selection is evaluated.`;
+    if (cyclePill) {
+      cyclePill.textContent = 'Cycle detected';
+      cyclePill.className = 'pill red';
+    }
+    if (victimEl) victimEl.textContent = `P${deadlocks.activeCycle[0]}`;
+    $('#statDeadlocks').textContent = '01';
+  } else {
+    if (headline) headline.textContent = 'No deadlocks detected';
+    if (desc) desc.textContent = 'Resource allocation graph is currently acyclic. All processes and lock acquisitions are safe.';
+    if (cyclePill) {
+      cyclePill.textContent = 'No cycle';
+      cyclePill.className = 'pill green';
+    }
+    if (victimEl) victimEl.textContent = 'None';
+    $('#statDeadlocks').textContent = '00';
+  }
+
+  const historyTbody = $('#recoveryHistory');
+  if (historyTbody) {
+    historyTbody.innerHTML = deadlocks.history.length
+      ? deadlocks.history.map(h => `<tr><td>${formatDate(h.time, true)}</td><td>${esc(Array.isArray(h.cycle) ? h.cycle.map(p => 'P' + p).join(' ↔ ') : String(h.cycle || '—'))}</td><td>P${esc(h.victimId)}</td><td>${esc(Array.isArray(h.releasedLocks) ? h.releasedLocks.map(f => 'File #' + f).join(', ') : '—')}</td><td>${pill(h.resolved ? 'RESOLVED' : 'FAILED')}</td></tr>`).join('')
+      : '<tr><td colspan="5"><div class="empty">No deadlock recovery events recorded.</div></td></tr>';
+  }
+}
+
+function renderLogs() {
+  let filter = $('#logFilter')?.value || 'all';
+  let arr = logs.filter(e => filter === 'all' || e.type === filter);
+  $('#fullLog').innerHTML = arr.length
+    ? arr.map(e => `<div class="logrow"><span style="color:#8e96a8">${esc(e.time)}</span><span>${pill(e.type)}</span><span>${esc(e.desc)}</span><span class="logstatus">${pill(e.status)}</span></div>`).join('')
+    : '<div class="empty">No events logged.</div>';
+}
+
+function renderAll() {
+  renderRecent();
+  renderFiles();
+  renderBars();
+  renderActivity();
+  renderProcesses();
+  renderSchedule();
+  renderLocks();
+  renderDeadlocks();
+  renderLogs();
+  $('#statFiles').textContent = String(files.length);
+}
+
+// ---- Navigation ----
+
+function navTo(v) {
+  let names = { dashboard: 'Overview', files: 'File explorer', processes: 'Process monitor', scheduler: 'Scheduler', locks: 'Lock manager', deadlocks: 'Deadlock centre', activity: 'Activity log' };
+  if (!names[v]) return;
+  $$('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
+  $$('#nav button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  $('#crumb').textContent = names[v];
+  $('#sidebar').classList.remove('open');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (v === 'files') renderFiles();
+  if (v === 'processes') renderProcesses();
+  if (v === 'scheduler') renderSchedule();
+  if (v === 'locks') renderLocks();
+  if (v === 'deadlocks') renderDeadlocks();
+  if (v === 'activity') renderLogs();
+}
+
+// ---- Modals & Actions ----
+
+function openModal(mode) {
+  modalMode = mode;
+  $('#modalBack').classList.add('open');
+  let title = mode === 'folder' ? 'Create a folder' : mode === 'process' ? 'Simulate / Submit process' : 'Upload files';
+  $('#modalTitle').textContent = title;
+  $('#modalDesc').textContent = mode === 'folder'
+    ? 'Create a new folder in the ConflictCore workspace database.'
+    : mode === 'process'
+    ? 'Submit an operation to the DBMS and OS kernel queue.'
+    : 'Choose files from your computer to stage and upload to the server.';
+
+  if (mode === 'folder') {
+    $('#modalFields').innerHTML = '<label for="folderName">Folder name</label><input id="folderName" placeholder="e.g. Semester Project" maxlength="60">';
+    $('#confirmModal').textContent = 'Create folder';
+    setTimeout(() => $('#folderName')?.focus(), 50);
+  } else if (mode === 'process') {
+    $('#modalFields').innerHTML = '<label for="processOp">Operation</label><select id="processOp"><option value="UPLOAD">UPLOAD (Requires staged file)</option><option value="DOWNLOAD">DOWNLOAD</option><option value="MOVE">MOVE</option><option value="EDIT">EDIT (Pending OS impl)</option><option value="DELETE">DELETE (Direct DBMS)</option><option value="SHARE">SHARE (Pending OS impl)</option></select><label for="processFile">File (name or ID)</label><input id="processFile" placeholder="e.g. Project_Report.pdf or 1"><label for="processBurst">CPU burst time (units)</label><input id="processBurst" type="number" min="1" max="20" value="3"><label for="processPriority">Priority (1 = highest)</label><input id="processPriority" type="number" min="1" max="10" value="3">';
+    $('#confirmModal').textContent = 'Submit process';
+  } else {
+    $('#modalFields').innerHTML = '<label>File selection</label><p style="margin:0">Select files from your device. Each file will be uploaded, queued in the OS scheduling pipeline, and committed upon CPU dispatch.</p>';
+    $('#confirmModal').textContent = 'Choose files';
+  }
+}
+
+function closeModal() {
+  $('#modalBack').classList.remove('open');
+}
+
+async function confirmModal() {
+  if (modalMode === 'folder') {
+    const n = $('#folderName').value.trim();
+    if (!n) {
+      toast('Please enter a folder name.');
+      return;
+    }
+    try {
+      const res = await apiRequest('/folders', {
+        method: 'POST',
+        body: JSON.stringify({ folder_name: n, owner_id: 1 })
+      });
+      closeModal();
+      toast(`Folder "${res.folder?.folder_name || n}" created.`);
+      await loadAll();
+    } catch (err) {
+      toast(`Failed to create folder: ${err.message}`);
+    }
+  } else if (modalMode === 'process') {
+    const inputVal = $('#processFile').value.trim();
+    const op = $('#processOp').value;
+    const burst = Math.max(1, Math.min(20, Number($('#processBurst').value) || 3));
+    const priority = Math.max(1, Math.min(10, Number($('#processPriority').value) || 3));
+
+    let matchedFile = files.find(f => f.name.toLowerCase() === inputVal.toLowerCase() || String(f.id) === inputVal);
+    let fileId = matchedFile ? matchedFile.id : (Number(inputVal) || null);
+
+    try {
+      const opRes = await apiRequest('/operations', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: 1,
+          file_id: fileId,
+          operation_type: op,
+          priority: priority,
+          details: { fileName: inputVal || (matchedFile?.name || 'File'), burstTime: burst }
+        })
+      });
+      const createdOp = opRes.operation;
+      closeModal();
+
+      if (['UPLOAD', 'DOWNLOAD', 'MOVE'].includes(op)) {
+        try {
+          await apiRequest(`/operations/${createdOp.operation_id}/execute`, { method: 'POST' });
+          toast(`Operation #${createdOp.operation_id} (${op}) submitted to OS ready queue.`);
+        } catch (execErr) {
+          toast(`Operation created in DB (#${createdOp.operation_id}), but OS execute returned: ${execErr.message}`);
+        }
+      } else {
+        toast(`Operation #${createdOp.operation_id} (${op}) recorded in DB. OS execution for ${op} is not implemented yet (501).`);
+      }
+      await loadAll();
+    } catch (err) {
+      toast(`Failed to create operation: ${err.message}`);
+    }
+  } else {
+    closeModal();
+    $('#fileInput').click();
+  }
+}
+
+// ---- Upload Handler ----
+
+async function handleUpload(list) {
+  if (!list || !list.length) return;
+  toast(`Starting upload for ${list.length} file(s)...`);
+
+  for (let f of list) {
+    try {
+      const formData = new FormData();
+      formData.append('file', f);
+
+      const stageRes = await apiRequest('/files/upload', {
+        method: 'POST',
+        body: formData
+      });
+      const opId = stageRes.operation?.operation_id;
+      if (!opId) throw new Error('No operation ID returned from upload staging');
+
+      await apiRequest(`/operations/${opId}/execute`, { method: 'POST' });
+
+      // Inspect ready queue before auto-dispatch
+      const procSnap = await apiRequest('/processes');
+      const headReady = procSnap.readyQueue && procSnap.readyQueue[0];
+      const matchingProc = (procSnap.processes || []).find(p => p.id === headReady);
+
+      if (matchingProc && matchingProc.name === `Operation-${opId}`) {
+        const dispRes = await apiRequest('/processes/dispatch', { method: 'POST' });
+        if (dispRes.status === 'COMPLETED' && dispRes.operationId === opId) {
+          toast(`Uploaded & committed: ${f.name} (File #${dispRes.fileId})`);
+        } else if (dispRes.status === 'COMPLETED' && dispRes.operationId !== opId) {
+          toast(`A different operation was dispatched (Op #${dispRes.operationId || 'unknown'}). ${f.name} remains queued or pending; check the operations list.`);
+        } else if (dispRes.status === 'IDLE') {
+          toast(`Dispatch returned IDLE. ${f.name} (Op #${opId}) remains queued in ready queue.`);
+        } else {
+          toast(`Dispatch status unclear (${dispRes.status || 'unknown'}). Check operations list for ${f.name} (Op #${opId}).`);
+        }
+      } else {
+        toast(`Staged & queued ${f.name} in OS ready queue (Op #${opId}). Click "Dispatch next" to process.`);
+      }
+    } catch (err) {
+      console.error('Upload error:', err);
+      toast(`Upload error for ${f.name}: ${err.message}`);
+    }
+  }
+
+  $('#fileInput').value = '';
+  await loadAll();
+}
+
+// ---- Dispatch Next ----
+
+async function dispatchNext() {
+  try {
+    const res = await apiRequest('/processes/dispatch', { method: 'POST' });
+    if (res.status === 'COMPLETED') {
+      toast(`⚡ Dispatched Op #${res.operationId} (${res.fileName || 'process'}) · State: COMPLETED`);
+    } else if (res.status === 'IDLE') {
+      toast(`Ready queue is empty (No process waiting for CPU dispatch).`);
+    } else {
+      toast(res.message || `Dispatch response: ${res.status}`);
+    }
+    await loadAll();
+  } catch (err) {
+    toast(`Dispatch failed: ${err.message}`);
+  }
+}
+
+// ---- File Actions Menu ----
+
+async function fileMenu(id) {
+  let f = files.find(x => String(x.id) === String(id));
+  if (!f) return;
+  let action = prompt(`Actions for ${f.name}\nType: download, rename, move, trash, delete, details`, 'details');
+  if (!action) return;
+  action = action.toLowerCase().trim();
+
+  if (action === 'download') {
+    toast(`Downloading ${f.name}...`);
+    window.location.href = `${API_BASE}/files/${f.id}/download`;
+  } else if (action === 'rename') {
+    let n = prompt('Enter new file name:', f.name);
+    if (n && n.trim() && n.trim() !== f.name) {
+      try {
+        await apiRequest(`/files/${f.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ file_name: n.trim() })
+        });
+        toast(`Renamed "${f.name}" to "${n.trim()}".`);
+        await loadAll();
+      } catch (err) {
+        toast(`Rename failed: ${err.message}`);
+      }
+    }
+  } else if (action === 'move') {
+    let folderNames = [...folders];
+    let dest = prompt(`Move "${f.name}" to folder:\nAvailable: ${folderNames.join(', ')}`, f.folder);
+    if (dest && dest.trim() && dest.trim() !== f.folder) {
+      let targetName = dest.trim();
+      let matchedEntry = [...folderMap.entries()].find(([, name]) => name.toLowerCase() === targetName.toLowerCase());
+      let targetFolderId = matchedEntry ? matchedEntry[0] : null;
+
+      if (!targetFolderId) {
+        if (confirm(`Folder "${targetName}" does not exist in DB. Create it now?`)) {
+          try {
+            const newF = await apiRequest('/folders', {
+              method: 'POST',
+              body: JSON.stringify({ folder_name: targetName, owner_id: 1 })
+            });
+            targetFolderId = newF.folder.folder_id;
+          } catch (err) {
+            toast(`Failed to create destination folder: ${err.message}`);
+            return;
+          }
+        } else {
+          return;
+        }
+      }
+
+      try {
+        await apiRequest(`/files/${f.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ folder_id: targetFolderId })
+        });
+        toast(`Moved "${f.name}" to "${targetName}".`);
+        await loadAll();
+      } catch (err) {
+        toast(`Move failed: ${err.message}`);
+      }
+    }
+  } else if (action === 'trash') {
+    if (confirm(`Move "${f.name}" to trash?`)) {
+      try {
+        await apiRequest(`/files/${f.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'TRASHED' })
+        });
+        toast(`"${f.name}" moved to trash.`);
+        await loadAll();
+      } catch (err) {
+        toast(`Trash update failed: ${err.message}`);
+      }
+    }
+  } else if (action === 'delete') {
+    if (confirm(`Permanently remove "${f.name}" from database and disk storage?`)) {
+      try {
+        await apiRequest(`/files/${f.id}`, { method: 'DELETE' });
+        toast(`"${f.name}" permanently deleted.`);
+        await loadAll();
+      } catch (err) {
+        toast(`Delete failed: ${err.message}`);
+      }
+    }
+  } else {
+    alert(`File details:\nID: ${f.id}\nName: ${f.name}\nFolder: ${f.folder} (ID: ${f.folderId || 'none'})\nType: ${f.type}\nSize: ${f.size} (${f.sizeBytes} bytes)\nStatus: ${f.status}\nLast updated: ${f.updated}`);
+  }
+}
+
+// ---- Event Listeners Registration ----
+
+$$('#nav button').forEach(b => b.addEventListener('click', () => navTo(b.dataset.view)));
+$$('[data-go]').forEach(b => b.addEventListener('click', () => navTo(b.dataset.go)));
+
+$$('[data-action]').forEach(b => b.addEventListener('click', async () => {
+  let a = b.dataset.action;
+  if (a === 'new-folder') openModal('folder');
+  if (a === 'upload') openModal('upload');
+  if (a === 'new-process') openModal('process');
+  if (a === 'dispatch-next') await dispatchNext();
+  if (a === 'refresh') {
+    await loadAll();
+    toast(isBackendConnected ? 'Workspace refreshed from live backend.' : 'Refreshed view (backend unreachable).');
+  }
+  if (a === 'reset-schedule') {
+    try {
+      await apiRequest('/scheduler/algorithm', { method: 'PUT', body: JSON.stringify({ algorithm: 'FCFS' }) });
+      algo = 'FCFS';
+      toast('Schedule reset to FCFS.');
+      await loadAll();
+    } catch (err) {
+      toast(`Failed to reset algorithm: ${err.message}`);
+    }
+  }
+  if (a === 'detect-deadlock') {
+    await loadDeadlocks();
+    renderDeadlocks();
+    if (deadlocks.activeCycle) {
+      toast(`Deadlock cycle detected: ${deadlocks.activeCycle.map(p => 'P' + p).join(' ↔ ')}`);
+    } else {
+      toast('Detection run: No circular wait found (Graph is acyclic).');
+    }
+  }
+  if (a === 'recover-demo') {
+    await loadDeadlocks();
+    if (deadlocks.activeCycle) {
+      toast(`Deadlock resolution is handled automatically by the OS layer during lock acquisition.`);
+    } else {
+      toast('No active deadlock cycle to recover from.');
+    }
+    renderDeadlocks();
+  }
+  if (a === 'export-log') {
+    let csv = 'time,type,description,status\n' + logs.map(e => [e.time, e.type, e.desc, e.status].map(x => '"' + String(x).replace(/"/g, '""') + '"').join(',')).join('\n');
+    let url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    let link = document.createElement('a');
+    link.href = url;
+    link.download = `conflictcore-activity-${Date.now()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast('Live activity log exported as CSV.');
+  }
+}));
+
+$('#algoButtons').addEventListener('click', async e => {
+  let b = e.target.closest('[data-algo]');
+  if (!b) return;
+  const targetAlgo = b.dataset.algo;
+  try {
+    const res = await apiRequest('/scheduler/algorithm', {
+      method: 'PUT',
+      body: JSON.stringify({ algorithm: targetAlgo })
+    });
+    algo = res.algorithm || targetAlgo;
+    renderSchedule();
+    toast(`Scheduler algorithm updated to ${algo}.`);
+  } catch (err) {
+    toast(`Failed to update algorithm: ${err.message}`);
+  }
+});
+
+$('#folderFilter').addEventListener('change', renderFiles);
+$('#typeFilter').addEventListener('change', renderFiles);
+$('#processFilter').addEventListener('change', renderProcesses);
+$('#logFilter').addEventListener('change', renderLogs);
+$('#globalSearch').addEventListener('input', () => { renderFiles(); renderProcesses(); });
+$('#fileInput').addEventListener('change', e => handleUpload(e.target.files));
+$('#cancelModal').addEventListener('click', closeModal);
+$('#confirmModal').addEventListener('click', confirmModal);
+$('#modalBack').addEventListener('click', e => { if (e.target === $('#modalBack')) closeModal(); });
+$('#menuBtn').addEventListener('click', () => $('#sidebar').classList.toggle('open'));
+$('#notifBtn').addEventListener('click', () => { navTo('activity'); toast('Showing recent workspace events.'); });
+$('#aboutBtn').addEventListener('click', () => alert('ConflictCore: Integrated Conflict Resolution-Based Multi-User File Management System.\nCombining OS process scheduling, concurrency control, deadlock detection & DBMS-backed metadata.'));
+
+document.addEventListener('click', e => {
+  let b = e.target.closest('[data-filemenu]');
+  if (b) fileMenu(b.dataset.filemenu);
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// Initial boot
+loadAll();
+</script>
+</body></html>

@@ -1,0 +1,12 @@
+{
+  "name": "conflictcore-os-module",
+  "version": "1.0.0",
+  "description": "ConflictCore OS module: process manager, FCFS/SJF/Priority scheduler, file lock manager, wait-for graph and deadlock recovery.",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "node --test",
+    "demo:scheduler": "node demo/runSchedulerDemo.js",
+    "demo:deadlock": "node demo/runDeadlockDemo.js"
+  },
+  "license": "MIT"
+}
