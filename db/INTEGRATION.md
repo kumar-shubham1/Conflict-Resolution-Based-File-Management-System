@@ -3,7 +3,7 @@
 This document provides the definitive technical integration contract for the ConflictCore engineering team:
 - **Backend & REST APIs** (Anshika)
 - **OS Process Manager & Scheduling** (Avni)
-- **Lock Management & Deadlock Handling** (Avni / Jahnvi)
+- **Lock Management & Deadlock Handling** (Avni / Shubham )
 - **Frontend & Admin Dashboards** (Jahnvi)
 
 ---
