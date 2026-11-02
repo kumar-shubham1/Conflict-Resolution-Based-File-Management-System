@@ -473,7 +473,11 @@
       <h1>Deadlock centre</h1>
       <p>Inspect circular waits, evaluate wait-for graph edges, and review automated victim recovery.</p>
     </div>
-    <div class="actions"><button class="btn primary" data-action="detect-deadlock">↻ Run cycle detection</button></div>
+    <div class="actions">
+      <button class="btn soft" data-action="simulate-deadlock" title="Simulate 2-process circular wait in OS Kernel">⚡ Simulate Deadlock (P1 ↔ P2)</button>
+      <button class="btn soft" data-action="simulate-3deadlock" title="Simulate 3-process circular wait in OS Kernel">⚡ 3-Process Cycle</button>
+      <button class="btn primary" data-action="detect-deadlock" id="btnDetectDeadlock">↻ Run cycle detection</button>
+    </div>
   </div>
   <div class="alertbox">
     <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 10 18H2zM12 9v5m0 3h.01"/></svg>
@@ -1167,36 +1171,157 @@ function renderLocks() {
   $('#activeLockBadge').textContent = `${activeCount} active`;
 }
 
+function renderDeadlockGraph(hasCycle, cycle, edges, lastRecovery) {
+  const container = $('#graphContainer');
+  if (!container) return;
+
+  if (hasCycle && cycle && cycle.length >= 2) {
+    if (cycle.length === 2) {
+      const p1 = cycle[0];
+      const p2 = cycle[1];
+      container.innerHTML = `
+        <svg viewBox="0 0 440 235" role="img" aria-label="Wait-for graph circular wait">
+          <defs>
+            <marker id="arrowRed" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 z" fill="#d05a6b"/>
+            </marker>
+          </defs>
+          <path d="M145 75 C220 15 285 15 315 75" stroke="#d05a6b" stroke-width="2.5" fill="none" marker-end="url(#arrowRed)"/>
+          <path d="M315 115 C285 175 220 175 145 115" stroke="#d05a6b" stroke-width="2.5" fill="none" marker-end="url(#arrowRed)"/>
+          <rect x="48" y="68" width="105" height="58" rx="12" fill="#fff0f2" stroke="#f0c4cb" stroke-width="1.5"/>
+          <text x="100" y="92" text-anchor="middle" font-size="13" font-weight="800" fill="#b84455">P${esc(p1)}</text>
+          <text x="100" y="110" text-anchor="middle" font-size="10" fill="#9d6870">BLOCKED (WAITING)</text>
+          <rect x="287" y="68" width="105" height="58" rx="12" fill="#fff0f2" stroke="#f0c4cb" stroke-width="1.5"/>
+          <text x="339" y="92" text-anchor="middle" font-size="13" font-weight="800" fill="#b84455">P${esc(p2)}</text>
+          <text x="339" y="110" text-anchor="middle" font-size="10" fill="#9d6870">BLOCKED (WAITING)</text>
+          <text x="220" y="44" text-anchor="middle" font-size="10" font-weight="700" fill="#b84455">P${esc(p1)} waits for lock held by P${esc(p2)}</text>
+          <text x="220" y="165" text-anchor="middle" font-size="10" font-weight="700" fill="#b84455">P${esc(p2)} waits for lock held by P${esc(p1)}</text>
+          <text x="220" y="215" text-anchor="middle" font-size="11" font-weight="700" fill="#c45161">⚠ ACTIVE DEADLOCK CYCLE: P${esc(p1)} ↔ P${esc(p2)}</text>
+        </svg>
+      `;
+    } else {
+      const p1 = cycle[0], p2 = cycle[1], p3 = cycle[2];
+      container.innerHTML = `
+        <svg viewBox="0 0 440 235" role="img" aria-label="3-Process Deadlock Cycle">
+          <defs>
+            <marker id="arrowRed" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 z" fill="#d05a6b"/>
+            </marker>
+          </defs>
+          <path d="M255 55 L320 115" stroke="#d05a6b" stroke-width="2.5" fill="none" marker-end="url(#arrowRed)"/>
+          <path d="M300 155 L140 155" stroke="#d05a6b" stroke-width="2.5" fill="none" marker-end="url(#arrowRed)"/>
+          <path d="M120 120 L185 55" stroke="#d05a6b" stroke-width="2.5" fill="none" marker-end="url(#arrowRed)"/>
+          <rect x="175" y="15" width="90" height="45" rx="10" fill="#fff0f2" stroke="#f0c4cb"/>
+          <text x="220" y="38" text-anchor="middle" font-size="12" font-weight="800" fill="#b84455">P${esc(p1)}</text>
+          <rect x="295" y="115" width="90" height="45" rx="10" fill="#fff0f2" stroke="#f0c4cb"/>
+          <text x="340" y="138" text-anchor="middle" font-size="12" font-weight="800" fill="#b84455">P${esc(p2)}</text>
+          <rect x="55" y="115" width="90" height="45" rx="10" fill="#fff0f2" stroke="#f0c4cb"/>
+          <text x="100" y="138" text-anchor="middle" font-size="12" font-weight="800" fill="#b84455">P${esc(p3)}</text>
+          <text x="220" y="210" text-anchor="middle" font-size="11" font-weight="700" fill="#c45161">⚠ 3-PROCESS CIRCULAR WAIT: P${esc(p1)} → P${esc(p2)} → P${esc(p3)} → P${esc(p1)}</text>
+        </svg>
+      `;
+    }
+    return;
+  }
+
+  if (edges && edges.length > 0) {
+    container.innerHTML = `
+      <svg viewBox="0 0 440 235" role="img" aria-label="Wait-for dependency graph">
+        <defs>
+          <marker id="arrowAmber" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L6,3 z" fill="#b7791f"/>
+          </marker>
+        </defs>
+        <line x1="140" y1="100" x2="300" y2="100" stroke="#b7791f" stroke-width="2.5" marker-end="url(#arrowAmber)"/>
+        <rect x="50" y="75" width="90" height="50" rx="10" fill="#fffdf2" stroke="#e8d89e"/>
+        <text x="95" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#b7791f">P${esc(edges[0].waiter)}</text>
+        <text x="95" y="114" text-anchor="middle" font-size="9" fill="#998342">WAITING</text>
+        <rect x="300" y="75" width="90" height="50" rx="10" fill="#f0eeff" stroke="#cfc8ff"/>
+        <text x="345" y="100" text-anchor="middle" font-size="12" font-weight="700" fill="#7164d9">P${esc(edges[0].holder)}</text>
+        <text x="345" y="114" text-anchor="middle" font-size="9" fill="#7a70c2">HOLDER</text>
+        <text x="220" y="85" text-anchor="middle" font-size="10" fill="#b7791f">waits for ${esc(edges[0].fileId)}</text>
+        <text x="220" y="180" text-anchor="middle" font-size="11" font-weight="700" fill="#23876a">✓ Graph is Acyclic (Linear dependency without deadlock)</text>
+      </svg>
+    `;
+    return;
+  }
+
+  if (lastRecovery) {
+    container.innerHTML = `
+      <svg viewBox="0 0 440 235" role="img" aria-label="Acyclic Recovered Graph">
+        <circle cx="220" cy="70" r="30" fill="#e5f6ef" stroke="#a3e3cb" stroke-width="2"/>
+        <path d="M210 70 L217 77 L232 62" fill="none" stroke="#23876a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="220" y="125" text-anchor="middle" font-size="13" font-weight="800" fill="#23876a">Resource Allocation Graph is Acyclic</text>
+        <text x="220" y="148" text-anchor="middle" font-size="11" fill="#535d72">Last deadlock recovered: Victim P${esc(lastRecovery.victimId)} aborted, locks released.</text>
+        <text x="220" y="170" text-anchor="middle" font-size="10" fill="#7c8498">Resumed processes: [${esc(Array.isArray(lastRecovery.resumed) ? lastRecovery.resumed.map(p => 'P' + p).join(', ') : 'None')}]</text>
+        <text x="220" y="205" text-anchor="middle" font-size="10" font-weight="700" fill="#7164d9">Status: SAFE — All lock requests satisfied</text>
+      </svg>
+    `;
+  } else {
+    container.innerHTML = `
+      <svg viewBox="0 0 440 235" role="img" aria-label="Acyclic Safe Graph">
+        <circle cx="220" cy="70" r="30" fill="#e5f6ef" stroke="#a3e3cb" stroke-width="2"/>
+        <path d="M210 70 L217 77 L232 62" fill="none" stroke="#23876a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="220" y="125" text-anchor="middle" font-size="13" font-weight="800" fill="#23876a">Resource Allocation Graph is Acyclic</text>
+        <text x="220" y="148" text-anchor="middle" font-size="11" fill="#7c8498">No active process lock contention or circular wait conditions.</text>
+        <text x="220" y="180" text-anchor="middle" font-size="10" font-weight="700" fill="#7164d9">Click "⚡ Simulate Deadlock" to observe live circular wait detection & recovery</text>
+      </svg>
+    `;
+  }
+}
+
 function renderDeadlocks() {
   const hasCycle = deadlocks.activeCycle && deadlocks.activeCycle.length > 0;
   const cyclePill = $('#cyclePill');
   const headline = $('#deadlockHeadline');
   const desc = $('#deadlockDescription');
   const victimEl = $('#victimName');
+  const detectBtn = $('#btnDetectDeadlock');
+  const lastRecovery = deadlocks.history && deadlocks.history.length > 0
+    ? deadlocks.history[deadlocks.history.length - 1]
+    : null;
+
+  renderDeadlockGraph(hasCycle, deadlocks.activeCycle, deadlocks.waitForEdges, lastRecovery);
 
   if (hasCycle) {
     const cycleNames = deadlocks.activeCycle.map(p => `P${p}`).join(' ↔ ');
     if (headline) headline.textContent = `Circular wait detected in OS wait-for graph (${cycleNames})`;
-    if (desc) desc.textContent = `Deadlock cycle identified across processes: ${deadlocks.activeCycle.map(p => `P${p}`).join(' → ')}. Recovery victim selection is evaluated.`;
+    if (desc) desc.textContent = `Deadlock cycle identified across processes: ${deadlocks.activeCycle.map(p => `P${p}`).join(' → ')}. Recovery victim evaluation ready.`;
     if (cyclePill) {
       cyclePill.textContent = 'Cycle detected';
       cyclePill.className = 'pill red';
     }
-    if (victimEl) victimEl.textContent = `P${deadlocks.activeCycle[0]}`;
+    let evaluatedVictimId = deadlocks.activeCycle[deadlocks.activeCycle.length - 1];
+    if (processes && processes.length) {
+      const candidates = deadlocks.activeCycle.map(pid => processes.find(p => p.id === pid)).filter(Boolean);
+      if (candidates.length) {
+        candidates.sort((a, b) => (b.priority || 0) - (a.priority || 0) || (b.id - a.id));
+        evaluatedVictimId = candidates[0].id;
+      }
+    }
+    if (victimEl) victimEl.textContent = `P${evaluatedVictimId}`;
     $('#statDeadlocks').textContent = '01';
     $('#navDeadlockCount').textContent = '1';
     $('#statDeadlocksSub').textContent = 'Deadlock cycle active';
+    if (detectBtn) detectBtn.textContent = '🛡️ Resolve Deadlock';
   } else {
     if (headline) headline.textContent = 'Resource allocation graph is acyclic';
-    if (desc) desc.textContent = 'Wait-for graph is acyclic. All running and waiting processes are operating safely without circular deadlocks.';
+    if (desc) {
+      desc.textContent = lastRecovery
+        ? `Wait-for graph is acyclic. Last deadlock cycle (${Array.isArray(lastRecovery.cycle) ? lastRecovery.cycle.map(p => 'P' + p).join(' ↔ ') : lastRecovery.cycle}) was resolved: victim P${lastRecovery.victimId} rolled back.`
+        : 'Wait-for graph is acyclic. All running and waiting processes are operating safely without circular deadlocks.';
+    }
     if (cyclePill) {
       cyclePill.textContent = 'Acyclic (Safe)';
       cyclePill.className = 'pill green';
     }
-    if (victimEl) victimEl.textContent = 'None';
+    if (victimEl) {
+      victimEl.textContent = lastRecovery ? `P${lastRecovery.victimId} (Recovered)` : 'None';
+    }
     $('#statDeadlocks').textContent = '00';
     $('#navDeadlockCount').textContent = '0';
-    $('#statDeadlocksSub').textContent = 'No deadlocks detected';
+    $('#statDeadlocksSub').textContent = lastRecovery ? `${deadlocks.history.length} recovered` : 'No deadlocks detected';
+    if (detectBtn) detectBtn.textContent = '↻ Run cycle detection';
   }
 
   const historyTbody = $('#recoveryHistory');
@@ -2007,13 +2132,65 @@ $$('[data-action]').forEach(b => b.addEventListener('click', async () => {
       toast(`Failed to reset algorithm: ${err.message}`);
     }
   }
+  if (a === 'simulate-deadlock') {
+    if (!authToken) {
+      toast('Please sign in to run OS deadlock simulations.');
+      openModal('auth', { tab: 'signin' });
+      return;
+    }
+    try {
+      const res = await apiRequest('/deadlocks/simulate', {
+        method: 'POST',
+        body: JSON.stringify({ mode: 'create', processCount: 2 })
+      });
+      await loadDeadlocks();
+      renderDeadlocks();
+      toast('Deadlock simulated (P1 ↔ P2)! Circular wait active in OS Wait-For Graph.');
+    } catch (err) {
+      toast(`Simulation failed: ${err.message}`);
+    }
+  }
+  if (a === 'simulate-3deadlock') {
+    if (!authToken) {
+      toast('Please sign in to run OS deadlock simulations.');
+      openModal('auth', { tab: 'signin' });
+      return;
+    }
+    try {
+      const res = await apiRequest('/deadlocks/simulate', {
+        method: 'POST',
+        body: JSON.stringify({ mode: 'create', processCount: 3 })
+      });
+      await loadDeadlocks();
+      renderDeadlocks();
+      toast('3-Process Deadlock simulated (P1 → P2 → P3 → P1)!');
+    } catch (err) {
+      toast(`Simulation failed: ${err.message}`);
+    }
+  }
   if (a === 'detect-deadlock') {
-    await loadDeadlocks();
-    renderDeadlocks();
-    if (deadlocks.activeCycle) {
-      toast(`Deadlock cycle detected: ${deadlocks.activeCycle.map(p => 'P' + p).join(' ↔ ')}`);
-    } else {
-      toast('Acyclic: No circular wait found in Wait-For graph.');
+    try {
+      if (deadlocks.activeCycle) {
+        if (!authToken) {
+          toast('Please sign in to resolve deadlocks.');
+          openModal('auth', { tab: 'signin' });
+          return;
+        }
+        const res = await apiRequest('/deadlocks/recover', { method: 'POST' });
+        await loadDeadlocks();
+        renderDeadlocks();
+        toast(res.message || 'Deadlock resolved! Victim aborted and locks released.');
+      } else {
+        await loadDeadlocks();
+        renderDeadlocks();
+        if (deadlocks.activeCycle) {
+          toast(`Deadlock cycle detected: ${deadlocks.activeCycle.map(p => 'P' + p).join(' ↔ ')}`);
+        } else {
+          toast('Acyclic: No circular wait found in Wait-For graph.');
+        }
+      }
+    } catch (err) {
+      toast(`Detection/Recovery failed: ${err.message}`);
     }
   }
   if (a === 'export-log') {
