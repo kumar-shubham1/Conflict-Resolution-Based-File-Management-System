@@ -1,9 +1,9 @@
--- ============================================================================
+-- ========================================================================
 -- ConflictCore — Core Database Architecture
 -- Seed Data: seed.sql
 -- Description: Ingests realistic sample/demo data across all 7 core tables:
 --              USERS, FOLDERS, FILES, FILE_PERMISSIONS, OPERATIONS, PROCESSES, FILE_LOCKS.
--- ============================================================================
+-- ========================================================================
 
 USE conflictcore_db;
 
@@ -104,3 +104,6 @@ INSERT INTO FILE_LOCKS (lock_id, file_id, process_id, lock_type, lock_status, re
 (3, 2, 3, 'EXCLUSIVE', 'ACQUIRED', '2026-09-11 10:00:00', '2026-09-11 10:00:05', NULL),                 -- Active lock held by Avni's edit process
 (4, 2, 4, 'EXCLUSIVE', 'WAITING',  '2026-09-11 10:02:00', NULL,                  NULL),                 -- Waiting lock: Shubham's edit process blocked
 (5, 1, 5, 'SHARED',    'RELEASED', '2026-09-11 10:15:00', '2026-09-11 10:15:00', '2026-09-11 10:15:03');
+
+
+
