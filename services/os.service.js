@@ -25,9 +25,8 @@ const VALID_OPERATIONS = new Set([
 const EXECUTABLE_OPERATIONS = new Set([
     'UPLOAD',
     'DOWNLOAD',
-    'MOVE',
     'EDIT',
-    'DELETE'
+    'MOVE'
 ]);
 
 const mapProcessState = (state) => {
@@ -872,118 +871,157 @@ export const dispatchNextProcess = async () => {
             };
         }
 
+        
         /*
          * EDIT — update file content with version tracking
          */
         if (operationType === 'EDIT') {
-            const fileId = operation.file_id;
-            if (!fileId) {
-                throw new Error('EDIT requires a valid file_id');
+            const fileId = validatePositiveId(
+                operation.file_id,
+                'EDIT file_id'
+            );
+
+            if (
+                !details.stagedFilePath ||
+                typeof details.stagedFilePath !== 'string'
+            ) {
+                throw new Error('EDIT requires details.stagedFilePath');
             }
 
-            const stagedFilePath = details.stagedFilePath
-                ? path.resolve(String(details.stagedFilePath))
-                : null;
+            const baseVersionNumber = Number(details.base_version_number);
+
+            if (
+                !Number.isInteger(baseVersionNumber) ||
+                baseVersionNumber < 1
+            ) {
+                throw new Error('EDIT requires a valid base_version_number');
+            }
+
+            const stagedFilePath = path.resolve(details.stagedFilePath);
+            const storageDirectory = path.resolve(process.cwd(), 'storage');
+            const relativePath = path.relative(
+                storageDirectory,
+                stagedFilePath
+            );
+
+            if (
+                !relativePath ||
+                relativePath === '..' ||
+                relativePath.startsWith(`..${path.sep}`) ||
+                path.isAbsolute(relativePath)
+            ) {
+                throw new Error('EDIT path must be inside the storage directory');
+            }
+
+            const stagedFile = await fs.stat(stagedFilePath);
+
+            if (!stagedFile.isFile()) {
+                throw new Error('EDIT staged upload is not a file');
+            }
 
             dispatchedProcess = osKernel.dispatch();
-            if (!dispatchedProcess || dispatchedProcess.id !== candidate.id) {
-                throw new Error('OS dispatch did not return the expected process');
+
+            if (
+                !dispatchedProcess ||
+                dispatchedProcess.id !== candidate.id
+            ) {
+                throw new Error('OS dispatch did not return the expected EDIT process');
             }
 
-            await connection.query(
-                `UPDATE PROCESSES SET state = 'RUNNING', started_at = COALESCE(started_at, CURRENT_TIMESTAMP) WHERE process_id = ?`,
+            const [processStart] = await connection.query(
+                `UPDATE PROCESSES
+                 SET state = 'RUNNING',
+                     started_at = COALESCE(started_at, CURRENT_TIMESTAMP)
+                 WHERE process_id = ?
+                   AND state = 'READY'`,
                 [databaseProcessId]
             );
-            await connection.query(
-                `UPDATE OPERATIONS SET status = 'EXECUTING' WHERE operation_id = ?`,
+
+            const [operationStart] = await connection.query(
+                `UPDATE OPERATIONS
+                 SET status = 'EXECUTING'
+                 WHERE operation_id = ?
+                   AND status = 'QUEUED'`,
                 [operationId]
             );
 
-            // Advance OS clock
+            if (
+                processStart.affectedRows !== 1 ||
+                operationStart.affectedRows !== 1
+            ) {
+                throw new Error('Could not start the EDIT operation safely');
+            }
+
+            await connection.commit();
+            transactionOpen = false;
+
+            // updateFileContent uses its own database connection.
+            const result = await updateFileContent(fileId, {
+                file_path: stagedFilePath,
+                file_size_bytes: stagedFile.size,
+                mime_type: details.mimeType || 'application/octet-stream',
+                base_version_number: baseVersionNumber,
+                user_id: Number(operation.user_id),
+                change_summary: details.change_summary || 'Edited via OS scheduler'
+            });
+
+            // Reconnect to persist the final OS and operation states.
+            connection = await pool.getConnection();
+            await connection.beginTransaction();
+            transactionOpen = true;
+
             const burstTime = getOsProcessBurstTime(dispatchedProcess);
             osKernel.clock.advance(burstTime);
 
-            // If a staged file is provided, perform versioned content update
-            if (stagedFilePath) {
-                try {
-                    const fileStats = await fs.stat(stagedFilePath);
-                    // Release connection before file service call (it acquires its own)
-                    await connection.commit();
-                    transactionOpen = false;
-
-                    const result = await updateFileContent(fileId, {
-                        file_path: stagedFilePath,
-                        file_size_bytes: fileStats.size,
-                        mime_type: details.mimeType || 'application/octet-stream',
-                        base_version_number: details.base_version_number || null,
-                        user_id: operation.user_id,
-                        change_summary: details.change_summary || 'Edited via OS scheduler'
-                    });
-
-                    // Re-open connection for final state updates
-                    connection = await pool.getConnection();
-                    await connection.beginTransaction();
-                    transactionOpen = true;
-
-                    if (result.conflict) {
-                        // Mark as completed with conflict note
-                        osKernel.complete(dispatchedProcess.id);
-                        await connection.query(
-                            `UPDATE PROCESSES SET state = 'TERMINATED', finished_at = CURRENT_TIMESTAMP WHERE process_id = ?`,
-                            [databaseProcessId]
-                        );
-                        await connection.query(
-                            `UPDATE OPERATIONS SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP,
-                             details = JSON_SET(COALESCE(details, '{}'), '$.conflictDetected', true, '$.conflictId', ?)
-                             WHERE operation_id = ?`,
-                            [result.conflict.conflict_id, operationId]
-                        );
-                        await connection.commit();
-                        transactionOpen = false;
-
-                        return {
-                            success: true,
-                            status: 'COMPLETED',
-                            operationId,
-                            databaseProcessId,
-                            osProcessId: dispatchedProcess.id,
-                            fileId,
-                            conflict: result.conflict,
-                            message: result.conflict.message
-                        };
-                    }
-                } catch (editErr) {
-                    osKernel.fail(dispatchedProcess.id, editErr.message);
-                    if (!transactionOpen) {
-                        connection = await pool.getConnection();
-                        await connection.beginTransaction();
-                        transactionOpen = true;
-                    }
-                    await connection.query(
-                        `UPDATE PROCESSES SET state = 'KILLED', finished_at = CURRENT_TIMESTAMP WHERE process_id = ?`,
-                        [databaseProcessId]
-                    );
-                    await connection.query(
-                        `UPDATE OPERATIONS SET status = 'FAILED', completed_at = CURRENT_TIMESTAMP WHERE operation_id = ?`,
-                        [operationId]
-                    );
-                    await connection.commit();
-                    transactionOpen = false;
-                    throw editErr;
-                }
-            }
-
-            // Complete the process
             const completedProcess = osKernel.complete(dispatchedProcess.id);
 
-            await connection.query(
-                `UPDATE PROCESSES SET state = 'TERMINATED', finished_at = CURRENT_TIMESTAMP WHERE process_id = ?`,
+            const [processFinish] = await connection.query(
+                `UPDATE PROCESSES
+                 SET state = 'TERMINATED',
+                     finished_at = CURRENT_TIMESTAMP
+                 WHERE process_id = ?
+                   AND state = 'RUNNING'`,
                 [databaseProcessId]
             );
-            await connection.query(
-                `UPDATE OPERATIONS SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP WHERE operation_id = ?`,
-                [operationId]
-            );
+
+            let operationFinish;
+
+            if (result.conflict) {
+                operationFinish = await connection.query(
+                    `UPDATE OPERATIONS
+                     SET status = 'COMPLETED',
+                         completed_at = CURRENT_TIMESTAMP,
+                         details = JSON_SET(
+                             COALESCE(details, '{}'),
+                             '$.conflictDetected', true,
+                             '$.conflictId', ?
+                         )
+                     WHERE operation_id = ?
+                       AND status = 'EXECUTING'`,
+                    [result.conflict.conflict_id, operationId]
+                );
+            } else {
+                operationFinish = await connection.query(
+                    `UPDATE OPERATIONS
+                     SET status = 'COMPLETED',
+                         completed_at = CURRENT_TIMESTAMP,
+                         details = JSON_SET(
+                             COALESCE(details, '{}'),
+                             '$.conflictDetected', false,
+                             '$.completedVersion', ?
+                         )
+                     WHERE operation_id = ?
+                       AND status = 'EXECUTING'`,
+                    [result.newVersion, operationId]
+                );
+            }
+
+            if (
+                processFinish.affectedRows !== 1 ||
+                operationFinish[0].affectedRows !== 1
+            ) {
+                throw new Error('Could not persist EDIT completion');
+            }
 
             await connection.commit();
             transactionOpen = false;
@@ -995,9 +1033,15 @@ export const dispatchNextProcess = async () => {
                 databaseProcessId,
                 osProcessId: dispatchedProcess.id,
                 fileId,
+                newVersion: result.newVersion || null,
+                conflict: result.conflict || null,
+                message: result.conflict
+                    ? 'Edit saved as an incoming version. Conflict requires resolution.'
+                    : `File updated to version ${result.newVersion}`,
                 process: completedProcess
             };
         }
+
 
         /*
          * DELETE — remove file from database and disk

@@ -191,6 +191,7 @@ export const updateExistingFile = async (id, data) => {
  * Detects stale-version conflicts using base_version_number.
  * Returns { file, newVersion, conflict } where conflict is non-null if detected.
  */
+
 export const updateFileContent = async (fileId, {
     file_path: newFilePath,
     file_size_bytes: newSize,
@@ -200,128 +201,175 @@ export const updateFileContent = async (fileId, {
     change_summary
 }) => {
     const connection = await pool.getConnection();
+
     try {
         await connection.beginTransaction();
 
-        // Lock the file row for update
-        const [fileRows] = await connection.query(
-            'SELECT file_id, file_name, file_path, owner_id FROM FILES WHERE file_id = ? FOR UPDATE',
+        // Lock the file so simultaneous edits are processed safely.
+        const [files] = await connection.query(
+            'SELECT file_id, file_name, file_path FROM FILES WHERE file_id = ? FOR UPDATE',
             [fileId]
         );
-        if (!fileRows.length) {
-            await connection.rollback();
-            connection.release();
+
+        if (files.length === 0) {
             throw new Error('File not found');
         }
-        const file = fileRows[0];
 
-        // Get the current version
-        const [currentVersionRows] = await connection.query(
-            'SELECT version_id, version_number, file_path, checksum FROM FILE_VERSIONS WHERE file_id = ? AND is_current = TRUE',
+        const [currentVersions] = await connection.query(
+            `SELECT version_id, version_number, file_path, checksum
+             FROM FILE_VERSIONS
+             WHERE file_id = ? AND is_current = TRUE
+             LIMIT 1`,
             [fileId]
         );
-        const currentVersion = currentVersionRows[0] || null;
-        const currentVersionNumber = currentVersion ? currentVersion.version_number : 0;
 
-        // --- Optimistic Concurrency Check ---
-        if (base_version_number != null && Number(base_version_number) < currentVersionNumber) {
-            // The client's base version is stale — a concurrent edit has occurred since they read the file.
-            // Create a new version for the incoming content but mark it as a conflicting submission.
-            const incomingVersionNumber = currentVersionNumber + 1;
-            const checksum = await fileChecksum(newFilePath);
+        if (currentVersions.length === 0) {
+            throw new Error('Current file version not found');
+        }
 
-            await connection.query(
-                'UPDATE FILE_VERSIONS SET is_current = FALSE WHERE file_id = ? AND is_current = TRUE',
-                [fileId]
-            );
+        const currentVersion = currentVersions[0];
+        const currentVersionNumber = Number(currentVersion.version_number);
+        const baseVersionNumber = Number(base_version_number);
 
-            const [incomingVer] = await connection.query(
+        if (
+            !Number.isInteger(baseVersionNumber) ||
+            baseVersionNumber < 1 ||
+            baseVersionNumber > currentVersionNumber
+        ) {
+            throw new Error('Invalid base version number');
+        }
+
+        // Find the actual version from which this edit was made.
+        const [baseVersions] = await connection.query(
+            `SELECT version_id
+             FROM FILE_VERSIONS
+             WHERE file_id = ? AND version_number = ?
+             LIMIT 1`,
+            [fileId, baseVersionNumber]
+        );
+
+        if (baseVersions.length === 0) {
+            throw new Error('Base version does not exist');
+        }
+
+        // Every submitted version gets a unique, increasing version number.
+        const [maxVersions] = await connection.query(
+            `SELECT COALESCE(MAX(version_number), 0) AS max_version
+             FROM FILE_VERSIONS
+             WHERE file_id = ?`,
+            [fileId]
+        );
+
+        const newVersionNumber = Number(maxVersions[0].max_version) + 1;
+        const checksum = await fileChecksum(newFilePath);
+
+        // STALE EDIT: preserve it as an incoming version and record a conflict.
+        if (baseVersionNumber < currentVersionNumber) {
+            const [incomingResult] = await connection.query(
                 `INSERT INTO FILE_VERSIONS
-                   (file_id, version_number, file_path, file_size_bytes, mime_type, checksum, change_summary, created_by, is_current)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, FALSE)`,
-                [fileId, incomingVersionNumber, newFilePath, newSize || 0, newMimeType || file.mime_type || 'application/octet-stream',
-                 checksum, change_summary || 'Concurrent edit (conflict)', user_id]
+                (file_id, version_number, file_path, file_content,
+                 file_size_bytes, mime_type, checksum, change_summary,
+                 created_by, is_current)
+                VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, FALSE)`,
+                [
+                    fileId,
+                    newVersionNumber,
+                    newFilePath,
+                    newSize,
+                    newMimeType,
+                    checksum,
+                    change_summary || 'Conflicting edit',
+                    user_id
+                ]
             );
 
-            // Re-mark the current version as current (the incoming is NOT current until resolved)
-            if (currentVersion) {
-                await connection.query(
-                    'UPDATE FILE_VERSIONS SET is_current = TRUE WHERE version_id = ?',
-                    [currentVersion.version_id]
-                );
-            }
-
-            // Record the conflict
             const [conflictResult] = await connection.query(
                 `INSERT INTO CONFLICTS
-                   (file_id, base_version_id, current_version_id, incoming_version_id, initiated_by, conflict_type, status, details)
-                 VALUES (?, ?, ?, ?, ?, 'STALE_UPDATE', 'OPEN', ?)`,
-                [fileId,
-                 currentVersion ? currentVersion.version_id : null,
-                 currentVersion ? currentVersion.version_id : null,
-                 incomingVer.insertId,
-                 user_id,
-                 JSON.stringify({
-                     base_version: base_version_number,
-                     current_version: currentVersionNumber,
-                     incoming_version: incomingVersionNumber,
-                     message: `User submitted changes based on v${base_version_number}, but file is at v${currentVersionNumber}`
-                 })]
+                (file_id, base_version_id, current_version_id,
+                 incoming_version_id, initiated_by, conflict_type,
+                 status, details)
+                VALUES (?, ?, ?, ?, ?, 'STALE_UPDATE', 'OPEN', ?)`,
+                [
+                    fileId,
+                    baseVersions[0].version_id,
+                    currentVersion.version_id,
+                    incomingResult.insertId,
+                    user_id,
+                    JSON.stringify({
+                        base_version_number: baseVersionNumber,
+                        current_version_number: currentVersionNumber,
+                        incoming_version_number: newVersionNumber,
+                        message: 'The file was modified after this edit began.'
+                    })
+                ]
             );
 
             await connection.commit();
-            connection.release();
 
             return {
-                file: await getFileById(fileId),
-                newVersion: null,
                 conflict: {
                     conflict_id: conflictResult.insertId,
-                    base_version: base_version_number,
+                    message: 'Conflict detected: the file has a newer version.',
+                    base_version: baseVersionNumber,
                     current_version: currentVersionNumber,
-                    incoming_version: incomingVersionNumber,
-                    message: `Concurrent change detected: your edit was based on v${base_version_number}, but the file is now at v${currentVersionNumber}. Please review the conflict.`
-                }
+                    incoming_version: newVersionNumber,
+                    status: 'OPEN'
+                },
+                file: files[0]
             };
         }
 
-        // --- No conflict: create new version normally ---
-        const newVersionNumber = currentVersionNumber + 1;
-        const checksum = await fileChecksum(newFilePath);
-
-        // Mark old version as not current
+        // NO CONFLICT: save the new version as current.
         await connection.query(
-            'UPDATE FILE_VERSIONS SET is_current = FALSE WHERE file_id = ? AND is_current = TRUE',
+            `UPDATE FILE_VERSIONS
+             SET is_current = FALSE
+             WHERE file_id = ? AND is_current = TRUE`,
             [fileId]
         );
 
-        // Insert new version
         await connection.query(
             `INSERT INTO FILE_VERSIONS
-               (file_id, version_number, file_path, file_size_bytes, mime_type, checksum, change_summary, created_by, is_current)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
-            [fileId, newVersionNumber, newFilePath, newSize || 0, newMimeType || 'application/octet-stream',
-             checksum, change_summary || `Updated to v${newVersionNumber}`, user_id]
+            (file_id, version_number, file_path, file_content,
+             file_size_bytes, mime_type, checksum, change_summary,
+             created_by, is_current)
+            VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, TRUE)`,
+            [
+                fileId,
+                newVersionNumber,
+                newFilePath,
+                newSize,
+                newMimeType,
+                checksum,
+                change_summary || 'File updated',
+                user_id
+            ]
         );
 
-        // Update the FILES table to point to new content
         await connection.query(
-            'UPDATE FILES SET file_path = ?, file_size_bytes = ?, mime_type = ? WHERE file_id = ?',
-            [newFilePath, newSize || 0, newMimeType || 'application/octet-stream', fileId]
+            `UPDATE FILES
+             SET file_path = ?, file_size_bytes = ?, mime_type = ?
+             WHERE file_id = ?`,
+            [newFilePath, newSize, newMimeType, fileId]
         );
 
         await connection.commit();
-        connection.release();
 
         return {
-            file: await getFileById(fileId),
+            conflict: null,
             newVersion: newVersionNumber,
-            conflict: null
+            file: {
+                ...files[0],
+                file_path: newFilePath,
+                file_size_bytes: newSize,
+                mime_type: newMimeType
+            }
         };
-    } catch (err) {
+
+    } catch (error) {
         await connection.rollback();
+        throw error;
+    } finally {
         connection.release();
-        throw err;
     }
 };
 

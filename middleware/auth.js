@@ -80,20 +80,27 @@ export const canAccessFile = async (userId, fileId, minPerm = 'READ') => {
     if (Number(owner_id) === Number(userId)) return true;
 
     // 5. Explicit FILE_PERMISSIONS grant (not expired)
-    const [permRows] = await pool.query(
-        `SELECT permission_type FROM FILE_PERMISSIONS
-         WHERE file_id = ? AND user_id = ?
-           AND (expires_at IS NULL OR expires_at > NOW())
-         LIMIT 1`,
-        [fileId, userId]
-    );
-    if (!permRows || permRows.length === 0) return false;
+const [permRows] = await pool.query(
+    `SELECT permission_type FROM FILE_PERMISSIONS
+     WHERE file_id = ? AND user_id = ?
+       AND (expires_at IS NULL OR expires_at > NOW())
+     ORDER BY CASE permission_type
+         WHEN 'ADMIN_ONLY' THEN 3
+         WHEN 'WRITE' THEN 2
+         WHEN 'READ' THEN 1
+         ELSE 0
+     END DESC
+     LIMIT 1`,
+    [fileId, userId]
+);
 
-    const grantedRank = PERM_RANK[permRows[0].permission_type] || 0;
-    const requiredRank = PERM_RANK[minPerm] || 1;
-    return grantedRank >= requiredRank;
+if (!permRows || permRows.length === 0) return false;
+
+const grantedRank = PERM_RANK[permRows[0].permission_type] || 0;
+const requiredRank = PERM_RANK[minPerm] || 1;
+
+return grantedRank >= requiredRank;
 };
-
 // ---------------------------------------------------------------------------
 // requireFileAccess middleware factory
 //
