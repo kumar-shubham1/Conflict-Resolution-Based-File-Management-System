@@ -26,7 +26,8 @@ const EXECUTABLE_OPERATIONS = new Set([
     'UPLOAD',
     'DOWNLOAD',
     'EDIT',
-    'MOVE'
+    'MOVE',
+    'DELETE'
 ]);
 
 const mapProcessState = (state) => {
