@@ -603,177 +603,222 @@ export const getFileConflicts = async (fileId) => {
     };
 };
 
-export async function resolveFileConflict(
-  fileId,
-  {
-    strategy = 'KEEP_CURRENT',
-    resolvedByUserId = 1,
-    conflict_id = null
-  } = {}
-) {
-  const connection = await pool.getConnection();
+export const resolveFileConflict = async (fileId, { strategy = 'KEEP_CURRENT', resolvedByUserId = 1, conflict_id = null }) => {
+    const file = await getFileById(fileId);
+    if (!file) throw new Error('File not found');
 
-  try {
-    await connection.beginTransaction();
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
 
-    if (!['KEEP_CURRENT', 'ACCEPT_INCOMING', 'CREATE_BRANCH'].includes(strategy)) {
-      throw new Error('Invalid conflict resolution strategy');
+        // First, check for lock-based conflicts (existing logic)
+        const [locks] = await connection.query(
+            `SELECT fl.lock_id, fl.process_id, fl.lock_status, p.operation_id, u.username, u.user_id
+             FROM FILE_LOCKS fl
+             JOIN PROCESSES p ON fl.process_id = p.process_id
+             JOIN OPERATIONS o ON p.operation_id = o.operation_id
+             JOIN USERS u ON o.user_id = u.user_id
+             WHERE fl.file_id = ? AND fl.lock_status IN ('ACQUIRED', 'WAITING')
+             ORDER BY fl.requested_at ASC`,
+            [fileId]
+        );
+
+        const holder = locks.find(l => l.lock_status === 'ACQUIRED');
+        const waiters = locks.filter(l => l.lock_status === 'WAITING');
+
+        // If there are lock-based conflicts, resolve them
+        if (holder && waiters.length > 0) {
+            let resolutionNote = '';
+            let branchedFile = null;
+
+            if (strategy === 'KEEP_CURRENT') {
+                for (const waiter of waiters) {
+                    await connection.query(
+                        `UPDATE FILE_LOCKS SET lock_status = 'ABORTED', released_at = CURRENT_TIMESTAMP WHERE lock_id = ?`,
+                        [waiter.lock_id]
+                    );
+                    await connection.query(
+                        `UPDATE PROCESSES SET state = 'TERMINATED', finished_at = CURRENT_TIMESTAMP WHERE process_id = ?`,
+                        [waiter.process_id]
+                    );
+                    await connection.query(
+                        `UPDATE OPERATIONS SET status = 'ABORTED' WHERE operation_id = ?`,
+                        [waiter.operation_id]
+                    );
+                }
+                resolutionNote = `Kept current changes from ${holder.username}. Aborted competing request(s) from ${waiters.map(w => w.username).join(', ')}.`;
+
+            } else if (strategy === 'ACCEPT_INCOMING') {
+                const primaryWaiter = waiters[0];
+                await connection.query(
+                    `UPDATE FILE_LOCKS SET lock_status = 'RELEASED', released_at = CURRENT_TIMESTAMP WHERE lock_id = ?`,
+                    [holder.lock_id]
+                );
+                await connection.query(
+                    `UPDATE FILE_LOCKS SET lock_status = 'ACQUIRED', acquired_at = CURRENT_TIMESTAMP WHERE lock_id = ?`,
+                    [primaryWaiter.lock_id]
+                );
+                await connection.query(
+                    `UPDATE PROCESSES SET state = 'RUNNING', started_at = CURRENT_TIMESTAMP WHERE process_id = ?`,
+                    [primaryWaiter.process_id]
+                );
+                await connection.query(
+                    `UPDATE OPERATIONS SET status = 'EXECUTING' WHERE operation_id = ?`,
+                    [primaryWaiter.operation_id]
+                );
+                resolutionNote = `Accepted incoming changes from ${primaryWaiter.username}. Released lock previously held by ${holder.username}.`;
+
+            } else if (strategy === 'CREATE_BRANCH') {
+                const primaryWaiter = waiters[0];
+                const nameParts = file.file_name.split('.');
+                const ext = nameParts.length > 1 ? `.${nameParts.pop()}` : '';
+                const baseName = nameParts.join('.');
+                const branchName = `${baseName}_branch_${Date.now()}${ext}`;
+
+                // Copy the physical file for the branch
+                const branchPath = await copyPhysicalFile(file.file_path, `branch_${Date.now()}`);
+
+                const [branchInsert] = await connection.query(
+                    `INSERT INTO FILES (file_name, folder_id, owner_id, file_size_bytes, file_path, mime_type, status)
+                     VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')`,
+                    [branchName, file.folder_id, primaryWaiter.user_id || resolvedByUserId,
+                     file.file_size_bytes, branchPath, file.mime_type]
+                );
+
+                const newFileId = branchInsert.insertId;
+
+                // Create v1 for the branched file
+                const checksum = await fileChecksum(branchPath);
+                await connection.query(
+                    `INSERT INTO FILE_VERSIONS
+                       (file_id, version_number, file_path, file_size_bytes, mime_type, checksum, change_summary, created_by, is_current)
+                     VALUES (?, 1, ?, ?, ?, ?, ?, ?, TRUE)`,
+                    [newFileId, branchPath, file.file_size_bytes, file.mime_type,
+                     checksum, `Branched from "${file.file_name}" during conflict resolution`, primaryWaiter.user_id || resolvedByUserId]
+                );
+
+                await connection.query(
+                    `UPDATE FILE_LOCKS SET file_id = ?, lock_status = 'RELEASED', released_at = CURRENT_TIMESTAMP WHERE lock_id = ?`,
+                    [newFileId, primaryWaiter.lock_id]
+                );
+                await connection.query(
+                    `UPDATE PROCESSES SET state = 'TERMINATED', finished_at = CURRENT_TIMESTAMP WHERE process_id = ?`,
+                    [primaryWaiter.process_id]
+                );
+                await connection.query(
+                    `UPDATE OPERATIONS SET file_id = ?, status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP WHERE operation_id = ?`,
+                    [newFileId, primaryWaiter.operation_id]
+                );
+
+                branchedFile = { file_id: newFileId, file_name: branchName };
+                resolutionNote = `Resolved conflict by branching incoming changes from ${primaryWaiter.username} into new file "${branchName}".`;
+            }
+
+            await connection.commit();
+            connection.release();
+            return { resolved: true, strategy, message: resolutionNote, branchedFile };
+        }
+
+        // If no lock conflicts, check for version-based conflicts
+        const conflictQuery = conflict_id
+            ? 'SELECT * FROM CONFLICTS WHERE conflict_id = ? AND file_id = ? AND status = ?'
+            : 'SELECT * FROM CONFLICTS WHERE file_id = ? AND status = ? ORDER BY created_at DESC LIMIT 1';
+        const conflictParams = conflict_id
+            ? [conflict_id, fileId, 'OPEN']
+            : [fileId, 'OPEN'];
+
+        const [conflictRows] = await connection.query(conflictQuery, conflictParams);
+
+        if (!conflictRows.length) {
+            await connection.rollback();
+            connection.release();
+            return { resolved: false, message: 'No active concurrent conflict found to resolve on this file.' };
+        }
+
+        const conflict = conflictRows[0];
+        let resolutionNote = '';
+        let branchedFile = null;
+
+        if (strategy === 'KEEP_CURRENT') {
+            // Keep the current version; discard the incoming conflicting version
+            await connection.query(
+                `UPDATE CONFLICTS SET status = 'RESOLVED', resolution_strategy = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE conflict_id = ?`,
+                ['KEEP_CURRENT', resolvedByUserId, conflict.conflict_id]
+            );
+            // Remove the incoming version if desired (mark as non-current, it already is)
+            resolutionNote = 'Kept the current version. The conflicting incoming changes were discarded.';
+
+        } else if (strategy === 'ACCEPT_INCOMING') {
+            // Make the incoming version the current one
+            if (conflict.incoming_version_id) {
+                await connection.query('UPDATE FILE_VERSIONS SET is_current = FALSE WHERE file_id = ?', [fileId]);
+                await connection.query('UPDATE FILE_VERSIONS SET is_current = TRUE WHERE version_id = ?', [conflict.incoming_version_id]);
+
+                // Update FILES table from the incoming version
+                const [incVer] = await connection.query('SELECT * FROM FILE_VERSIONS WHERE version_id = ?', [conflict.incoming_version_id]);
+                if (incVer.length) {
+                    await connection.query(
+                        'UPDATE FILES SET file_path = ?, file_size_bytes = ?, mime_type = ? WHERE file_id = ?',
+                        [incVer[0].file_path, incVer[0].file_size_bytes, incVer[0].mime_type, fileId]
+                    );
+                }
+            }
+            await connection.query(
+                `UPDATE CONFLICTS SET status = 'RESOLVED', resolution_strategy = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE conflict_id = ?`,
+                ['ACCEPT_INCOMING', resolvedByUserId, conflict.conflict_id]
+            );
+            resolutionNote = 'Accepted incoming changes as the new current version.';
+
+        } else if (strategy === 'CREATE_BRANCH') {
+            // Create a new file from the incoming version
+            if (conflict.incoming_version_id) {
+                const [incVer] = await connection.query('SELECT * FROM FILE_VERSIONS WHERE version_id = ?', [conflict.incoming_version_id]);
+                if (incVer.length) {
+                    const nameParts = file.file_name.split('.');
+                    const ext = nameParts.length > 1 ? `.${nameParts.pop()}` : '';
+                    const baseName = nameParts.join('.');
+                    const branchName = `${baseName}_branch_${Date.now()}${ext}`;
+
+                    const branchPath = await copyPhysicalFile(incVer[0].file_path, `branch_${Date.now()}`);
+
+                    const [branchInsert] = await connection.query(
+                        `INSERT INTO FILES (file_name, folder_id, owner_id, file_size_bytes, file_path, mime_type, status)
+                         VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')`,
+                        [branchName, file.folder_id, conflict.initiated_by, incVer[0].file_size_bytes, branchPath, incVer[0].mime_type]
+                    );
+
+                    const newFileId = branchInsert.insertId;
+                    const checksum = await fileChecksum(branchPath);
+
+                    await connection.query(
+                        `INSERT INTO FILE_VERSIONS
+                           (file_id, version_number, file_path, file_size_bytes, mime_type, checksum, change_summary, created_by, is_current)
+                         VALUES (?, 1, ?, ?, ?, ?, ?, ?, TRUE)`,
+                        [newFileId, branchPath, incVer[0].file_size_bytes, incVer[0].mime_type,
+                         checksum, `Branched from "${file.file_name}" conflict resolution`, conflict.initiated_by]
+                    );
+
+                    branchedFile = { file_id: newFileId, file_name: branchName };
+                    resolutionNote = `Created branch file "${branchName}" from conflicting changes.`;
+                }
+            }
+
+            await connection.query(
+                `UPDATE CONFLICTS SET status = 'RESOLVED', resolution_strategy = ?, resolved_by = ?, resolved_at = CURRENT_TIMESTAMP WHERE conflict_id = ?`,
+                ['CREATE_BRANCH', resolvedByUserId, conflict.conflict_id]
+            );
+            if (!resolutionNote) resolutionNote = 'Conflict resolved via branch creation.';
+        }
+
+        await connection.commit();
+        connection.release();
+        return { resolved: true, strategy, message: resolutionNote, branchedFile };
+    } catch (err) {
+        await connection.rollback();
+        connection.release();
+        throw err;
     }
-
-    // Lock the original file.
-    const [files] = await connection.query(
-      `SELECT *
-       FROM FILES
-       WHERE file_id = ?
-       FOR UPDATE`,
-      [fileId]
-    );
-
-    if (!files.length) {
-      throw new Error('File not found');
-    }
-
-    const file = files[0];
-
-    // Lock the open conflict.
-    let conflictQuery = `
-      SELECT *
-      FROM CONFLICTS
-      WHERE file_id = ?
-        AND status = 'OPEN'
-    `;
-
-    const params = [fileId];
-
-    if (conflict_id) {
-      conflictQuery += ' AND conflict_id = ?';
-      params.push(conflict_id);
-    }
-
-    conflictQuery += ' ORDER BY created_at ASC LIMIT 1 FOR UPDATE';
-
-    const [conflicts] = await connection.query(conflictQuery, params);
-
-    if (!conflicts.length) {
-      throw new Error('No open conflict found');
-    }
-
-    const conflict = conflicts[0];
-
-    // Retrieve the incoming version.
-    const [versions] = await connection.query(
-      `SELECT *
-       FROM FILE_VERSIONS
-       WHERE version_id = ?
-         AND file_id = ?`,
-      [conflict.incoming_version_id, fileId]
-    );
-
-    if (!versions.length) {
-      throw new Error('Incoming version not found');
-    }
-
-    const incoming = versions[0];
-
-    if (strategy === 'ACCEPT_INCOMING') {
-      await connection.query(
-        `UPDATE FILE_VERSIONS
-         SET is_current = FALSE
-         WHERE file_id = ?`,
-        [fileId]
-      );
-
-      await connection.query(
-        `UPDATE FILE_VERSIONS
-         SET is_current = TRUE
-         WHERE version_id = ?`,
-        [incoming.version_id]
-      );
-
-      await connection.query(
-        `UPDATE FILES
-         SET file_path = ?,
-             file_size_bytes = ?,
-             mime_type = ?
-         WHERE file_id = ?`,
-        [
-          incoming.file_path,
-          incoming.file_size_bytes,
-          incoming.mime_type,
-          fileId
-        ]
-      );
-    }
-
-    if (strategy === 'CREATE_BRANCH') {
-      const branchPath = await copyPhysicalFile(
-        incoming.file_path,
-        `branch-${fileId}-${Date.now()}`
-      );
-
-      const branchName = `${file.file_name} (Branch)`;
-
-      const [branchResult] = await connection.query(
-        `INSERT INTO FILES
-         (file_name, file_path, file_size_bytes, mime_type, owner_id, folder_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          branchName,
-          branchPath,
-          incoming.file_size_bytes,
-          incoming.mime_type,
-          file.owner_id,
-          file.folder_id
-        ]
-      );
-
-      const checksum = await fileChecksum(branchPath);
-
-      await connection.query(
-        `INSERT INTO FILE_VERSIONS
-         (file_id, version_number, file_path, file_size_bytes,
-          mime_type, checksum, change_summary, created_by, is_current)
-         VALUES (?, 1, ?, ?, ?, ?, ?, ?, TRUE)`,
-        [
-          branchResult.insertId,
-          branchPath,
-          incoming.file_size_bytes,
-          incoming.mime_type,
-          checksum,
-          `Branch created from conflict #${conflict.conflict_id}`,
-          resolvedByUserId
-        ]
-      );
-    }
-
-    // KEEP_CURRENT deliberately leaves the current version unchanged.
-    await connection.query(
-      `UPDATE CONFLICTS
-       SET status = 'RESOLVED',
-           resolution_strategy = ?,
-           resolved_by = ?,
-           resolved_at = CURRENT_TIMESTAMP
-       WHERE conflict_id = ?`,
-      [strategy, resolvedByUserId, conflict.conflict_id]
-    );
-
-    await connection.commit();
-
-    return {
-      success: true,
-      message: 'Conflict resolved successfully',
-      conflict_id: conflict.conflict_id,
-      file_id: fileId,
-      strategy
-    };
-
-  } catch (error) {
-    await connection.rollback();
-    throw error;
-  } finally {
-    connection.release();
-  }
-}
+};
 
 /** List all open conflicts for a file or all files. */
 export const getOpenConflicts = async (fileId = null) => {
