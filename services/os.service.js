@@ -1048,65 +1048,130 @@ export const dispatchNextProcess = async () => {
          * DELETE — remove file from database and disk
          */
         if (operationType === 'DELETE') {
-            const fileId = operation.file_id;
-            if (!fileId) {
-                throw new Error('DELETE requires a valid file_id');
-            }
+            const fileId = validatePositiveId(
+                operation.file_id,
+                'DELETE file_id'
+            );
 
             dispatchedProcess = osKernel.dispatch();
+
             if (!dispatchedProcess || dispatchedProcess.id !== candidate.id) {
-                throw new Error('OS dispatch did not return the expected process');
+                throw new Error('OS dispatch did not return the expected DELETE process');
             }
 
-            await connection.query(
-                `UPDATE PROCESSES SET state = 'RUNNING', started_at = COALESCE(started_at, CURRENT_TIMESTAMP) WHERE process_id = ?`,
-                [databaseProcessId]
-            );
-            await connection.query(
-                `UPDATE OPERATIONS SET status = 'EXECUTING' WHERE operation_id = ?`,
-                [operationId]
-            );
-
-            // Advance OS clock
             const burstTime = getOsProcessBurstTime(dispatchedProcess);
-            osKernel.clock.advance(burstTime);
 
-            // Get the file record
             const [fileRows] = await connection.query(
-                'SELECT file_id, file_name, file_path FROM FILES WHERE file_id = ?',
+                `SELECT file_id, file_name, file_path
+                 FROM FILES
+                 WHERE file_id = ?
+                 FOR UPDATE`,
                 [fileId]
             );
 
-            if (fileRows.length) {
-                const file = fileRows[0];
-                // Delete physical file (best-effort)
-                try { await deleteStoredFile(file.file_path); } catch {}
-                // Delete version files
-                const [versions] = await connection.query(
-                    'SELECT file_path FROM FILE_VERSIONS WHERE file_id = ? AND file_path != ?',
-                    [fileId, file.file_path]
-                );
-                for (const v of versions) {
-                    try { await deleteStoredFile(v.file_path); } catch {}
-                }
-                // Delete DB record (cascades to versions, permissions, locks)
-                await connection.query('DELETE FROM FILES WHERE file_id = ?', [fileId]);
+            if (!fileRows.length) {
+                throw new Error('File not found; DELETE operation cannot continue');
             }
 
-            // Complete the process
-            const completedProcess = osKernel.complete(dispatchedProcess.id);
+            const file = fileRows[0];
 
-            await connection.query(
-                `UPDATE PROCESSES SET state = 'TERMINATED', finished_at = CURRENT_TIMESTAMP WHERE process_id = ?`,
+            const [versions] = await connection.query(
+                `SELECT file_path
+                 FROM FILE_VERSIONS
+                 WHERE file_id = ?`,
+                [fileId]
+            );
+
+            const pathsToDelete = new Set(
+                [file.file_path, ...versions.map((version) => version.file_path)]
+                    .filter(Boolean)
+            );
+
+            const [processStart] = await connection.query(
+                `UPDATE PROCESSES
+                 SET state = 'RUNNING',
+                     started_at = COALESCE(started_at, CURRENT_TIMESTAMP)
+                 WHERE process_id = ?
+                   AND state = 'READY'`,
                 [databaseProcessId]
             );
-            await connection.query(
-                `UPDATE OPERATIONS SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP, file_id = NULL WHERE operation_id = ?`,
+
+            const [operationStart] = await connection.query(
+                `UPDATE OPERATIONS
+                 SET status = 'EXECUTING'
+                 WHERE operation_id = ?
+                   AND status = 'QUEUED'`,
                 [operationId]
             );
 
+            if (
+                processStart.affectedRows !== 1 ||
+                operationStart.affectedRows !== 1
+            ) {
+                throw new Error('Could not start the DELETE operation safely');
+            }
+
+            // IMPORTANT: complete both database state updates BEFORE deleting
+            // FILES, because its foreign-key cascades may remove PROCESSES.
+            const [processFinish] = await connection.query(
+                `UPDATE PROCESSES
+                 SET state = 'TERMINATED',
+                     finished_at = CURRENT_TIMESTAMP
+                 WHERE process_id = ?
+                   AND state = 'RUNNING'`,
+                [databaseProcessId]
+            );
+
+            if (processFinish.affectedRows !== 1) {
+                throw new Error(
+                    `Could not terminate database process ${databaseProcessId}`
+                );
+            }
+
+            const [operationFinish] = await connection.query(
+                `UPDATE OPERATIONS
+                 SET status = 'COMPLETED',
+                     completed_at = CURRENT_TIMESTAMP,
+                     file_id = NULL
+                 WHERE operation_id = ?
+                   AND status = 'EXECUTING'`,
+                [operationId]
+            );
+
+            if (operationFinish.affectedRows !== 1) {
+                throw new Error(
+                    `Could not complete DELETE operation ${operationId}`
+                );
+            }
+
+            // Now delete the file. Related records may be removed by cascades.
+            const [fileDelete] = await connection.query(
+                'DELETE FROM FILES WHERE file_id = ?',
+                [fileId]
+            );
+
+            if (fileDelete.affectedRows !== 1) {
+                throw new Error('Could not delete the file database record');
+            }
+
+            osKernel.clock.advance(burstTime);
+
             await connection.commit();
             transactionOpen = false;
+
+            const completedProcess = osKernel.complete(dispatchedProcess.id);
+
+            // Only remove physical files after the database commit succeeds.
+            for (const storedPath of pathsToDelete) {
+                try {
+                    await deleteStoredFile(storedPath);
+                } catch (cleanupError) {
+                    console.error(
+                        `Could not remove deleted file from storage: ${storedPath}`,
+                        cleanupError
+                    );
+                }
+            }
 
             return {
                 success: true,
@@ -1115,11 +1180,10 @@ export const dispatchNextProcess = async () => {
                 databaseProcessId,
                 osProcessId: dispatchedProcess.id,
                 fileId,
-                fileName: fileRows.length ? fileRows[0].file_name : null,
+                fileName: file.file_name,
                 process: completedProcess
             };
         }
-
 
         /*
          * DOWNLOAD
