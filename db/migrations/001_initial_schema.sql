@@ -1,10 +1,9 @@
--- ============================================================================
+-- ==========================================
 -- ConflictCore — Relational Database Foundation
 -- Migration: 001_initial_schema.sql
 -- Description: Creates the 7 core tables with constraints, keys, and indexes.
 -- Target DBMS: MySQL 8.0+ / 9.x (InnoDB Engine)
--- ============================================================================
-
+-- ==========================================
 -- Ensure the database exists and set active context
 CREATE DATABASE IF NOT EXISTS conflictcore_db
     CHARACTER SET utf8mb4
