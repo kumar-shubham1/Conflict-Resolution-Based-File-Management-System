@@ -1,4 +1,5 @@
-# ConflictCore — Frontend & Visualisation
+
+# ConflictCore — Frontend
 
 **Project:** Conflict Resolution Based File Management System
 **Team:** OSDBMS-V-2026-T206
@@ -6,51 +7,134 @@
 
 ## Overview
 
-ConflictCore is a Project-Based Learning project combining Operating Systems and Database Management Systems concepts to demonstrate file operations, process scheduling, concurrent access, locks, and deadlock handling.
+ConflictCore is a multi-user file management system integrating Operating Systems and Database Management Systems concepts.
 
-## Contribution
+The frontend provides a dashboard for interacting with the backend REST API and visualising file operations, process scheduling, resource locking, conflict resolution and deadlock recovery.
+
+## Frontend Contribution
 
 **Jahnvi Sharma — Frontend UI & Visualisation**
 
-This repository contains the frontend demonstration interface for ConflictCore, including:
+The frontend includes:
 
-- Overview dashboard with file, process, lock and deadlock summary cards
-- File explorer with search, filters, folder creation, local file listing and file-action demonstrations
-- Process monitor with lifecycle states and operation details
-- FCFS, SJF and Priority scheduling visualisation, Gantt timeline and waiting/turnaround/response metrics
-- File lock registry and waiting queue view
-- Wait-for graph and deadlock recovery demonstration
-- Activity log with CSV export
-- Responsive navigation, dialogs, status indicators and toast feedback
+- Overview dashboard and backend connection status
+- File explorer with folder navigation and file metadata
+- File upload and file management interactions
+- Process monitor with process lifecycle information
+- FCFS, SJF and Priority scheduling visualisation
+- Gantt chart and scheduling performance metrics
+- Lock manager and FIFO waiting queues
+- Wait-for graph and deadlock detection
+- Deadlock simulation and recovery
+- Conflict inspection and resolution interface
+- File version history
+- Activity log and CSV export
+- Authentication and responsive navigation
 
-## Technology
+## Technology Stack
 
 - HTML5
-- CSS3 (responsive layout and custom styling)
+- CSS3
 - Vanilla JavaScript
+- REST API integration
+- JWT bearer-token authentication
 
-## Run locally
+## Backend Integration
 
-No build tools or package installation are required.
+The frontend communicates with the project's backend REST API.
 
-1. Download or clone this repository.
-2. Open `index.html` in a modern browser.
+The API base URL is configured through:
 
-Alternatively, open the folder in VS Code and use the Live Server extension.
+```javascript
+window.CONFLICTCORE_API_BASE
+```
 
-## Important implementation note
+If no custom URL is supplied, the frontend uses its default API configuration.
 
-The current UI is a standalone frontend demonstration using sample data. It does not yet connect to the team's backend, MySQL database, or OS kernel. File uploads only add selected filenames to the local page; they are not uploaded to a server. File actions, process creation, scheduler calculations, and deadlock recovery interactions are local demonstrations and do not modify real backend records or operating-system processes. Backend integration will be added according to the team's agreed integration plan.
+Authentication uses a bearer token stored in browser local storage after successful login.
 
-## Team responsibilities
+The frontend integrates with backend functionality for:
+
+- User authentication
+- File and folder management
+- File operations and metadata
+- Process monitoring
+- CPU scheduling
+- Resource locks and waiting queues
+- Deadlock detection and recovery
+- Conflict management
+- File version history
+- Operation history
+
+The backend and database are responsible for persistent records and actual file operations. The frontend presents and interacts with the available API functionality.
+
+## Running Locally
+
+### Prerequisites
+
+- Node.js
+- MySQL configured for the backend
+- Backend dependencies installed
+- Backend environment variables configured
+
+### 1. Start the backend
+
+From the project root, follow the backend README and start the backend server.
+
+The default frontend API configuration expects:
+
+```text
+http://localhost:3000/api
+```
+
+### 2. Open the frontend
+
+Open `frontend/index.html` in a modern browser.
+
+Alternatively, use the VS Code Live Server extension.
+
+### 3. Sign in
+
+Use an existing backend account to authenticate.
+
+The frontend uses the returned authentication token for protected API requests.
+
+### 4. Test the dashboard
+
+Verify:
+
+- Dashboard data loads from the backend.
+- Files and folders are displayed.
+- Processes and scheduling information are retrieved.
+- Lock and deadlock information is displayed.
+- Deadlock simulation and recovery interact with the backend.
+- Conflict and version-history functionality works against backend records.
+
+## Configuration
+
+The default API configuration is:
+
+```javascript
+const API_BASE = window.CONFLICTCORE_API_BASE ||
+  (window.location.protocol === 'file:' ||
+   (window.location.port && window.location.port !== '3000')
+    ? 'http://localhost:3000/api'
+    : '/api');
+```
+
+A custom API base URL can be supplied before loading the frontend script.
+
+## Team Responsibilities
 
 | Team member | Responsibility |
 |---|---|
 | Anshika Lakhera | Backend REST APIs and authentication |
-| Avni Negi | OS process manager and scheduling |
+| Avni Negi | OS process management and scheduling |
 | Shubham Kumar | DBMS, database and data access layer |
 | Jahnvi Sharma | Frontend UI and visualisation |
 
-## Project status
+## Project Status
 
-Frontend demonstration implementation created. API/database/OS integration is pending team coordination.
+The frontend contains REST API integration for the project's backend services.
+
+End-to-end functionality should be validated against the running backend and configured database environment. Any unsupported or incomplete API functionality should be documented separately rather than represented as completed.
