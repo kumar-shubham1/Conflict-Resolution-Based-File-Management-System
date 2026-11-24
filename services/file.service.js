@@ -794,7 +794,7 @@ export const resolveFileConflict = async (fileId, { strategy = 'KEEP_CURRENT', r
                 ['KEEP_CURRENT', resolvedByUserId, conflict.conflict_id]
             );
             // Remove the incoming version if desired (mark as non-current, it already is)
-            resolutionNote = 'Kept the current version. The conflicting incoming changes were discarded.';
+            resolutionNote = 'Kept the current version. The incoming version was retained in version history.';
 
         } else if (strategy === 'ACCEPT_INCOMING') {
             // Make the incoming version the current one

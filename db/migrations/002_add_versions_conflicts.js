@@ -7,12 +7,6 @@ import mysql from 'mysql2/promise';
 import path from 'path';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
-console.log('DB CONFIG CHECK:', {
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER ? 'FOUND' : 'MISSING',
-    password: process.env.DB_PASSWORD ? 'FOUND' : 'MISSING',
-    database: process.env.DB_NAME
-});
 
 const conn = await mysql.createConnection({
   host: process.env.DB_HOST || 'localhost',
@@ -82,6 +76,24 @@ try {
       DEFAULT CHARSET=utf8mb4
       COLLATE=utf8mb4_unicode_ci
   `);
+
+  // Ensure file_content exists in older FILE_VERSIONS tables
+  const [fileContentColumn] = await conn.query(`
+    SELECT COUNT(*) AS column_count
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'FILE_VERSIONS'
+      AND COLUMN_NAME = 'file_content'
+  `);
+
+  if (Number(fileContentColumn[0].column_count) === 0) {
+    await conn.query(`
+      ALTER TABLE FILE_VERSIONS
+      ADD COLUMN file_content LONGTEXT NULL AFTER file_path
+    `);
+
+    console.log('Added missing file_content column to FILE_VERSIONS');
+  }
 
   console.log('FILE_VERSIONS table created/verified');
 
