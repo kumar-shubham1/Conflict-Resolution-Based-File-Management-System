@@ -1,7 +1,5 @@
 'use strict';
-
 const { OSKernel } = require('../src/OSKernel');
-
 // P1 holds A and waits for B; P2 holds B and waits for A (PRD section 9).
 const kernel = new OSKernel({ algorithm: 'PRIORITY' });
 
