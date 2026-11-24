@@ -1,4 +1,4 @@
-
+import crypto from 'crypto';
 import pool from '../config/db.js';
 import { osKernel } from './osKernel.js';
 import {
@@ -635,6 +635,24 @@ export const dispatchNextProcess = async () => {
             );
 
             const fileId = fileInsert.insertId;
+            // Create the initial version record for every scheduled upload.
+const fileBuffer = await fs.readFile(stagedFilePath);
+const checksum = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+
+await connection.query(
+    `INSERT INTO FILE_VERSIONS
+       (file_id, version_number, file_path, file_size_bytes, mime_type,
+        checksum, change_summary, created_by, is_current)
+     VALUES (?, 1, ?, ?, ?, ?, 'Initial upload', ?, TRUE)`,
+    [
+        fileId,
+        stagedFilePath,
+        stagedFile.size,
+        mimeType,
+        checksum,
+        Number(operation.user_id)
+    ]
+);
 
             const [processFinish] = await connection.query(
                 `UPDATE PROCESSES
